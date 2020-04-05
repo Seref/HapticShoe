@@ -1,12 +1,6 @@
 #pragma once
 
-#define HOSTNAME "RIGHTSHOE"
-
-//Filter Errors
-#define UPToleranceAmount 96
-#define DOWNToleranceAmount 96
-
-#define DirectionTolerance 96
+#define HOSTNAME "LEFTSHOE"
 
 #define REDLEDPIN 4
 #define GREENLEDPIN 2
@@ -16,9 +10,8 @@
 #define GREENLED 2
 #define BLUELED 3
 
-#define DEBUGSPACING 25 //in ms
-
 #define INITIALVALUEADDRESS 0
+
 
 const unsigned char PROGMEM ledValue[] = {
 	0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -37,11 +30,3 @@ const unsigned char PROGMEM ledValue[] = {
 	83, 85, 87, 89, 91, 93, 95, 98, 100, 102, 105, 107, 110, 113, 115, 118,
 	121, 124, 127, 130, 133, 137, 140, 143, 147, 150, 154, 158, 162, 165, 170, 174,
 	178, 182, 187, 191, 196, 201, 205, 210, 215, 221, 226, 232, 237, 243, 249, 255};
-
-enum
-{
-	UP,
-	DOWN,
-	PAUSE,
-	EXPLODE
-};

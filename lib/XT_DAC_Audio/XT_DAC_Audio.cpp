@@ -78,7 +78,7 @@ int SineValues[256];       // an array to store our values for sine
 
 void InitSineValues()
 {
-	float ConversionFactor=(2.0*3.142)/256.0;           // convert my 0-255 bits in a circle to radians
+	float ConversionFactor=(2.0*( 3.14159265358979323846))/256.0;           // convert my 0-255 bits in a circle to radians
 														// there are 2 x PI radians in a circle hence the 2*PI
 														// Then divide by 256 to get the value in radians
 														// for one of my 0-255 bits.
@@ -379,7 +379,6 @@ void XT_DAC_Audio_Class::Play(XT_PlayListItem_Class *Sound,bool Mix)
 
 	if(AlreadyPlaying(Sound))
 		RemoveFromPlayList(Sound);
-
 	if(Mix==false)  							// stop all currently playing sounds and just have this one
 		StopAllSounds();
 
@@ -406,7 +405,6 @@ void XT_DAC_Audio_Class::Play(XT_PlayListItem_Class *Sound,bool Mix)
 	}
 	Sound->Playing=true;					// Will start it playing
 }
-
 
 
 bool XT_DAC_Audio_Class::AlreadyPlaying(XT_PlayListItem_Class *Item)
@@ -504,7 +502,7 @@ uint8_t XT_Wav_Class::NextByte()
 		ActualIncreaseBy=IncreaseBy*Speed;
 	Count+=ActualIncreaseBy;
 	IntPartOfCount=floor(Count);
-	//ReturnValue=Data[DataIdx];				// by default we return previous value;
+//	ReturnValue=Data[DataIdx];				// by default we return previous value;
     ReturnValue = SetVolume(Data[DataIdx], Volume);  // TEB, Oct-22-2019
 
 	if(IntPartOfCount>LastIntCount)
@@ -550,151 +548,7 @@ uint8_t XT_Wav_Class::NextByte()
 
 }
 
-//Modified Wav Class with Split support
 
-#define DATA_CHUNK_ID 0x61746164
-#define FMT_CHUNK_ID 0x20746d66
-// Convert 4 byte little-endian to a long.
-#define longword(bfr, ofs) (bfr[ofs+3] << 24 | bfr[ofs+2] << 16 |bfr[ofs+1] << 8 |bfr[ofs+0])
-
-XT_Wav_Splitable_Class::XT_Wav_Splitable_Class(const unsigned char *WavData, uint8_t TotalParts)
-{
-   // create a new wav class object
-   unsigned long ofs, siz;
-
-   /* Process the chunks.  "fmt " is format, "data" is the samples, ignore all else. */
-   ofs = 12;
-   siz = longword(WavData, 4);
-   SampleRate = DataStart = 0;
-   while (ofs < siz) {
-      if (longword(WavData, ofs) == DATA_CHUNK_ID) {
-	 DataSize = longword(WavData, ofs+4);
-	 DataIdx = DataStart = ofs +8;
-      }
-      if (longword(WavData, ofs) == FMT_CHUNK_ID) {
-	 SampleRate = longword(WavData, ofs+12);
-      }
-      ofs += longword(WavData, ofs+4) + 8;
-   }
-   	IncreaseBy=float(SampleRate)/BytesPerSec;
-   	PlayingTime = (1000 * DataSize) / (uint32_t)(SampleRate);
-   	Data=WavData;
-   	Speed=1.0;
-
-	Parts = TotalParts;	
-
-	//Save Original Values
-	OriginalPlayingTime = PlayingTime;
-	OriginalStart = DataStart;
-	OriginalDataSize = DataSize;
-
-	//Calculate the size of a Part and the Time
-	PartDataSize = DataSize;
-	PartPlayTimeSize = PlayingTime;
-	
-   	if(Parts>0)
-   	{	  	   
-		PartDataSize = DataSize/(Parts);
-		PartPlayTimeSize = (1000 * PartDataSize) / (uint32_t)(SampleRate);		
-   	}
-}
-
-void XT_Wav_Splitable_Class::Init()
-{
-	LastIntCount=0;
-	Count=0;
-	SpeedUpCount=0;
-	TimeElapsed = 0;	
-
-	if(Parts == 0)
-	{		
-		DataIdx= OriginalStart;
-		DataStart = OriginalStart;
-		DataSize = OriginalDataSize;		
-		TimeLeft = OriginalPlayingTime;		
-	}
-	else
-	{	
-		DataIdx =	OriginalStart+PartDataSize*CurrentPart;		
-		DataStart = OriginalStart+PartDataSize*CurrentPart;
-		uint32_t tempDataSize = OriginalStart+PartDataSize*(CurrentPart+1);
-		if(tempDataSize<OriginalDataSize)
-			DataSize = 	tempDataSize;
-		else
-			DataSize = OriginalDataSize;
-		TimeLeft = 	PartPlayTimeSize;
-	}
-}
-
-void XT_Wav_Splitable_Class::SetCurrentPart(uint8_t NextPart)
-{	
-	if(Parts>0 && NextPart <= Parts){		
-		CurrentPart = NextPart;
-		Init();
-	}	
-}
-
-uint8_t XT_Wav_Splitable_Class::NextByte()
-{
-	// Returns the next byte to be played, note that this routine will return values suitable to
-	// be played back at 50,000Hz. Even if this sample is at a lesser rate than that it will be
-	// padded out as required so that it will appear to have a 50Khz sample rate
-
-	uint32_t IntPartOfCount;
-	uint8_t ReturnValue;
-	float ActualIncreaseBy;
-
-	// increase the counter, if it goes to a new integer digit then write to DAC
-
-	ActualIncreaseBy=IncreaseBy;      // default if not playing slower than normal
-	if(Speed<=1.0)	// manipulate IncreaseBy
-		ActualIncreaseBy=IncreaseBy*Speed;
-	Count+=ActualIncreaseBy;
-	IntPartOfCount=floor(Count);
-	//ReturnValue=Data[DataIdx];				// by default we return previous value;
-    ReturnValue = SetVolume(Data[DataIdx], Volume);  // TEB, Oct-22-2019
-
-	if(IntPartOfCount>LastIntCount)
-	{
-		if(Speed>1.0)
-		{
-			// for speeding up we need to basically go through the data quicker as upping the frequency
-			// that this routine is called could put too much strain on the CPU.
-			// First we subtract 1 from IncreaseBy as code below will handling the basic increment through
-			// the data.
-
-			// we now get the integer and decimal parts of this number and move the DataIdx on by "int" amount first
-			double IntPartAsFloat,DecimalPart,TempSpeed;
-			TempSpeed=Speed-1.0;
-			DecimalPart=modf(TempSpeed,&IntPartAsFloat);
-			DataIdx+=int(IntPartAsFloat);						// always increase by the integer part
-			SpeedUpCount+=DecimalPart;
-			// If SpeedUpCount >1 then add this extra "1" to the DataIdx too and subtract 1 from SpeedUpCount
-			// This allows us "apparently" increment the DataIdx by a decimal amount
-
-			if(SpeedUpCount>1)
-			{
-				DataIdx++;				// move another pos into data
-				SpeedUpCount--;			// Take it off SpeedUpCount
-			}
-		}
-		// gone to a new integer of count, we need to send a new value to the DAC next time
-		// update the DataIDx counter
-		LastIntCount=IntPartOfCount;
-		DataIdx++;
-		TimeElapsed = 1000 * DataIdx / SampleRate;
-		TimeLeft = PlayingTime - TimeElapsed;
-		if(DataIdx>=DataSize)  				// end of data, flag end
-		{
-			Count=0;						// reset frequency counter
-			DataIdx=DataStart;				// reset data pointer back to beginning of WAV data
-			Playing=false;  				// mark as completed
-			TimeLeft = 0;
-		}
-	}
-
-	return ReturnValue;
-}
 
 
 
@@ -719,12 +573,11 @@ XT_Instrument_Class::XT_Instrument_Class(int16_t InstrumentID):XT_Instrument_Cla
 XT_Instrument_Class::XT_Instrument_Class(int16_t InstrumentID, uint8_t Volume)
 {
 	// Volume : Volume of sound 0- 127 (max)
-	this->Note=abs(NOTE_C4);					// default note
+	//this->Note=abs(NOTE_C4);					// default note
 	this->SoundDuration=1000;					// default note length, ignored if using envelopes
 	this->Duration=1000;						// default length of entire play action (i.e. after any decay) ignored if using envelopes
 	this->Volume=Volume;
 	SetInstrument(InstrumentID);				// The default
-
 }
 
 
@@ -761,7 +614,7 @@ void XT_Instrument_Class::SetInstrument(uint16_t Instrument)
 
 void XT_Instrument_Class::SetDefaultInstrument()
 {
-	SetWaveForm(WAVE_SQUARE);
+	SetWaveForm(WAVE_SINE);
 }
 
 
@@ -845,7 +698,6 @@ void XT_Instrument_Class::Init()
 	{
 		CurrentEnvelope=FirstEnvelope;
 		CurrentEnvelope->Init();
-
 	}
 }
 
@@ -1327,6 +1179,8 @@ void XT_SineWave_Class::Init(int8_t Note)
 		Frequency=25000;
 	if(Frequency!=0)							// avoid divide by 0, a freq of 0 means no sound
 		AngleIncrement=256/(BytesPerSec/float(Frequency));   // determines frequency
+
+	Serial.println(" ");
 }
 
 

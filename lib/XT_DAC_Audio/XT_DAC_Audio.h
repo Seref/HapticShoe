@@ -142,8 +142,6 @@ class XT_Wav_Class : public XT_PlayListItem_Class
 												// is twice as fast, 0.5 half as fast., use the getter and setter
 												// functions to access. default is 1, normal speed.
 
-	
-
 	// constructors
 	XT_Wav_Class(const unsigned char *WavData);
 
@@ -151,57 +149,6 @@ class XT_Wav_Class : public XT_PlayListItem_Class
 	uint8_t NextByte()override;
 	void Init()override;						// initialize any default values
 };
-
-// The Main Wave class for sound samples
-class XT_Wav_Splitable_Class : public XT_PlayListItem_Class
-{
-	private:
-	uint8_t CurrentPart = 0;
-	uint32_t OriginalStart;	
-	uint32_t OriginalDataSize;	
-	uint32_t OriginalPlayingTime;
-
-	uint32_t PartDataSize;
-	uint32_t PartPlayTimeSize;
-	
-	
-	void InitPart();
-
-	protected:
-
-	public:	
-	uint16_t SampleRate;
-	uint32_t DataSize=0;                        // The last integer part of count
-	uint32_t DataStart;							// offset of the actual data.
-	uint32_t DataIdx;
-	uint8_t Parts = 0;
-	
-	const unsigned char *Data=nullptr;          // TEB, Oct-10-2019
-	float IncreaseBy=0;                         // The amount to increase the counter by per call to "onTimer"
-	float Count=0;                              // The counter counting up, we check this to see if we need to send
-												// a new byte to the buffer
-	int32_t LastIntCount=-1;                    // The last integer part of count
-	float SpeedUpCount=0;						// The decimal part of the amount to increment the dataptr by for the
-												// next byte to send to the DAC. As we cannot move through data in
-												// partial amounts then we keep track of the decimal and when it
-												// "clicks over" to a new integer we increment the dataptr an extra
-												// "1" place.
-	float Speed=1.0;					        // 1 is normal, less than 1 slower, more than 1 faster, i.e. 2
-												// is twice as fast, 0.5 half as fast., use the getter and setter
-												// functions to access. default is 1, normal speed.
-
-	
-
-	// constructors
-	XT_Wav_Splitable_Class(const unsigned char *WavData, uint8_t Parts);
-
-	// functions	
-	void SetCurrentPart(uint8_t Part);
-	uint8_t NextByte()override;
-	void Init()override;						// initialize any default values
-};
-
-
 
 
 
@@ -395,6 +342,7 @@ class XT_Instrument_Class : public XT_PlayListItem_Class
 
 
 // Music Score class
+
 class XT_MusicScore_Class:public XT_PlayListItem_Class
 {
 	// a class that handles basic musical scores (sheet music) to allow the play back of a single
@@ -494,7 +442,7 @@ class XT_DAC_Audio_Class
         uint8_t DacVolume = 100;                                // Audio Volume, Range is 0=Off to 100=Full Volume.  TEB Sep-16-2019
 		uint8_t MixBytesToPlay();
 		void Play(XT_PlayListItem_Class *Sound);
-		void Play(XT_PlayListItem_Class *Sound,bool Mix);		
+		void Play(XT_PlayListItem_Class *Sound,bool Mix);
 		void StopAllSounds();
 		bool AlreadyPlaying(XT_PlayListItem_Class *Item);
 		void RemoveFromPlayList(XT_PlayListItem_Class *ItemToRemove);
