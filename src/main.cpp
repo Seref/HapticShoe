@@ -1,39 +1,41 @@
 #include <Arduino.h>
 #include "RunningMedian.h"
-#include <WiFi.h>
+
 #include "XT_DAC_Audio.h"
 
-#include "privatedata.h"
 #include "config.h"
-
-
 
 #include <EEPROM.h>
 #include "eeprom_helper.h"
+#include <soc/sens_reg.h>
+#include <soc/sens_struct.h>
 
 XT_DAC_Audio_Class DacAudio(25,0);
 
 //Runing Median to smooth out the bad readings, I also added a capacitor (just as recommended from the espressif documentation)
 RunningMedian pressureSensor = RunningMedian(96);
 
+#define ADC_SAMPLES_COUNT 1000
+int16_t abuf[ADC_SAMPLES_COUNT];
+int16_t abufPos = 0;
 
 uint16_t maxPressureValue = 4095;
 uint16_t initialPressureValue = 200;
 
 
 byte amplitude = 255;   // amplitude 0-255  == 0%-100%
-byte granularity = 4;   // not sure if we might need more values
+byte granularity = 64;   // not sure if we might need more values
 int16_t duration = 20;  // duration in ms
 int frequency = 5;      // I may have to change this to float
 
 
+char lastCommand[128];
+
 bool debug_mode = false;
 
-uint16_t update_spacing = 25;
+uint16_t update_spacing = 16;
 
-WiFiServer server(80);
-WiFiClient client;
-
+XT_Instrument_Class Example(INSTRUMENT_NONE, 127);
 
 String get_value_from_string(String data, char separator, int index)
 {
@@ -88,60 +90,6 @@ void fade_LED(uint8_t LED)
   ledcWrite(LED, 0);
 }
 
-XT_Instrument_Class Example(INSTRUMENT_NONE, 127);
-void setup()
-{
-  delay(10);
-
-  //Start Serial Connection
-  Serial.begin(115200);
-
-  //Init emulated EEPROM (flash) with 2 bytes for a 16bit value
-  EEPROM.begin(2);
-
-  //Setup Pins for LEDs, Pressure Readings
-  pinMode(34, INPUT);
-
-  ledcSetup(REDLED, 5000, 8);
-  ledcSetup(GREENLED, 5000, 8);
-  ledcSetup(BLUELED, 5000, 8);
-
-  ledcAttachPin(BLUELEDPIN, BLUELED);
-  ledcAttachPin(REDLEDPIN, REDLED);
-  ledcAttachPin(GREENLEDPIN, GREENLED);
-
-  //Setup Wifi Hostname, I'm spamming the setHostname function because it often doesn't want to work for some reason
-  WiFi.setHostname(HOSTNAME);
-  delay(10);
-  WiFi.begin(SSID, PW);
-  WiFi.setHostname(HOSTNAME);
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    delay(50);
-    fade_LED(GREENLED);
-  }
-  WiFi.setHostname(HOSTNAME);
-
-  Serial.println(WiFi.localIP());
-
-  server.begin();
-
-
-  //Load the initial compensation value from flash
-  initialPressureValue = EepromReadInt(INITIALVALUEADDRESS);    
-  Serial.println("Initial Pressure Value Loaded " + String(initialPressureValue));
-  
-  
-  Example.SetFrequency(400);
-  Example.SetDuration(1000*30);
-  
-  //Example.Volume = 127;  
-  
-  DacAudio.Play(&Example);
-}
-
-char lastCommand[128];
-
 /*
 Commands have the following structure:
 They are always humanreadable (I'm debbugging this stuff with a serial terminal)
@@ -161,15 +109,17 @@ inline void process_commands(String s, bool force)
     case 0: //Set Settings
     {
       strcpy(lastCommand, s.c_str());  
-      byte _granularity = (byte) get_value_from_string(s, ',', 1).toInt();      
-      byte _amplitude =   (byte) get_value_from_string(s, ',', 3).toInt();
+      byte _granularity =  (byte) get_value_from_string(s, ',', 1).toInt();      
       int16_t _frequency = (int16_t) get_value_from_string(s, ',', 2).toInt();
+      byte _amplitude =    (byte) get_value_from_string(s, ',', 3).toInt();      
       int16_t _duration =  (int16_t) get_value_from_string(s, ',', 4).toInt();
       
       Example.SetFrequency(_frequency);
       Example.SetDuration(_duration);
       Example.Volume = _amplitude;
-      DacAudio.Play(&Example);
+      //DacAudio.Play(&Example);
+
+      granularity = (255/_granularity);
 
       Serial.println("Received: " + String(_granularity) + " " + String(_frequency) + " " + String(_amplitude)) + " " + String(_duration);              
     }
@@ -178,7 +128,7 @@ inline void process_commands(String s, bool force)
     {
       get_pressure_sensor_value(&maxPressureValue, 64);
 
-      Serial.println("Max Value calibrated! "+String(maxPressureValue));
+      //Serial.println("Max Value calibrated! "+String(maxPressureValue));
       //add 10% to the max value as compensation
       maxPressureValue -= initialPressureValue;
       maxPressureValue = (int)(maxPressureValue * 1.1f);
@@ -190,7 +140,7 @@ inline void process_commands(String s, bool force)
       get_pressure_sensor_value(&initialPressureValue, 256);
 
       //add 10% to the min value as compensation
-      initialPressureValue = (int)(initialPressureValue * 1.1f);
+      initialPressureValue = (int)(initialPressureValue * 1.15f);
       Serial.println("Initial Value calibrated! "+String(initialPressureValue));
 
       /*
@@ -213,14 +163,55 @@ inline void process_commands(String s, bool force)
       Serial.println("Feedback OFF!");
     }
     break;
+    case 5: //Play Wave
+    {
+      strcpy(lastCommand, s.c_str());        
+      int16_t _frequency = (int16_t) get_value_from_string(s, ',', 1).toInt();
+      byte _amplitude =    (byte) get_value_from_string(s, ',', 2).toInt();      
+      int16_t _duration =  (int16_t) get_value_from_string(s, ',', 3).toInt();
+      
+      Example.SetFrequency(_frequency);
+      Example.SetDuration(_duration);
+      Example.Volume = _amplitude;
+      DacAudio.Play(&Example);
+
+      Serial.println("Received: " + String(_frequency) + " " + String(_amplitude)) + " " + String(_duration);
+    }
+    break;
     }
   }  
 }
 
+void setup()
+{
+  delay(10);
+
+  //Start Serial Connection
+  Serial.begin(115200);
+
+  //Init emulated EEPROM (flash) with 2 bytes for a 16bit value
+  EEPROM.begin(2);
+
+  //Setup Pins for LEDs, Pressure Readings
+  pinMode(34, INPUT);
+
+  ledcSetup(REDLED, 5000, 8);
+  ledcSetup(GREENLED, 5000, 8);
+  ledcSetup(BLUELED, 5000, 8);
+
+  ledcAttachPin(BLUELEDPIN, BLUELED);
+  ledcAttachPin(REDLEDPIN, REDLED);
+  ledcAttachPin(GREENLEDPIN, GREENLED);    
+
+  //Load the initial compensation value from flash
+  initialPressureValue = EepromReadInt(INITIALVALUEADDRESS);    
+  Serial.println("Initial Pressure Value Loaded " + String(initialPressureValue));  
+}
+
 // this is the messy part where I try to process the pressure readings to something that is universal for everyone person
-byte get_mapped_pressure_value(){
-  
-  //read raw pressure value  
+inline byte get_mapped_pressure_value(){
+  //get the current average "smoothed" value from the RunningMedian, we could also .getMedian to get the Median.    
+  //read raw pressure value
   uint16_t pressureValue = analogRead(34);
 
   //check if the value lies below the "idle" sensormeasurement if so set it to 0 if not reduce it's value by the "idle" value
@@ -232,9 +223,7 @@ byte get_mapped_pressure_value(){
   //add this value to our RunningMedian of 96 values
   pressureSensor.add(pressureValue);
 
-  //get the current average "smoothed" value from the RunningMedian, we could also .getMedian to get the Median.
   int averagePressureValue = pressureSensor.getMedian();
-
   //now remove any values that exceed our upper bound
   if (averagePressureValue > maxPressureValue)
   {
@@ -246,29 +235,23 @@ byte get_mapped_pressure_value(){
 }
 
 
-unsigned long timestamp = 0;
+
+uint16_t lastStep = 0;
+//Handles Granularity
+inline void play_at_step(byte mappedPressure){
+    byte currentStep = mappedPressure / granularity;
+    
+    if(currentStep != lastStep){      
+      lastStep = currentStep;
+      DacAudio.Play(&Example);
+    }    
+}
+
+unsigned long lastTimestamp = 0;
 byte last_mapped_pressure_value = 0;
 void loop()
 {
-  DacAudio.FillBuffer();  
-
-  //See if a client connects or is connected and receive their Data (over Wifi)
-  if (client)
-  {
-    if (client.connected())
-    {
-      if (client.available())
-      {
-        process_commands(client.readStringUntil('\n'), false);
-      }
-    }
-    else
-    {
-      client.stop();
-    }
-  }
-  else
-    client = server.available();
+  DacAudio.FillBuffer();    
 
   //See if Serial Input is available and process the command
   if (Serial.available())
@@ -281,31 +264,24 @@ void loop()
   //display the current pressure value
   ledcWrite(BLUELED, ledValue[mapped_pressure_value]);
 
-  //Send feedback back to Shoe
+  play_at_step(mapped_pressure_value);
+
+  //Send feedback back to Shoe not constanly only at fixed intervals
   if (debug_mode)
   {
     unsigned long currentTime = millis();
-    if (currentTime - timestamp >= update_spacing)
+    if (currentTime - lastTimestamp >= update_spacing)
     {
-      timestamp = currentTime;
+      lastTimestamp = currentTime;
 
       if (mapped_pressure_value != last_mapped_pressure_value)
       {
         last_mapped_pressure_value = mapped_pressure_value;
-        String debug_message = "DEBUG;"+ String(last_mapped_pressure_value) + ";";
-
-        if (client)
-        {
-          if (client.connected())
-            client.println(debug_message);
-          else
-            client.stop();
-        }
+        String debug_message = "Pressure "+ String(last_mapped_pressure_value)+" Raw "+analogRead(34);
 
         Serial.println(debug_message);
       }
     }
-      
-    //Serial.println(RTC_SLOW_MEM[indexAddress] & 0xffff);    
+          
   }    
 }
