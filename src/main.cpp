@@ -33,7 +33,7 @@ char lastCommand[128];
 
 bool debug_mode = false;
 
-uint16_t update_spacing = 16;
+uint16_t update_spacing = 20; //in ms rate at which serial should send stuff
 
 XT_Instrument_Class Example(INSTRUMENT_NONE, 127);
 
@@ -239,10 +239,11 @@ inline byte get_mapped_pressure_value(){
 uint16_t lastStep = 0;
 //Handles Granularity
 inline void play_at_step(byte mappedPressure){
-    byte currentStep = mappedPressure / granularity;
+    byte currentStep = (mappedPressure / granularity);
     
     if(currentStep != lastStep){      
       lastStep = currentStep;
+      DacAudio.StopAllSounds();
       DacAudio.Play(&Example);
     }    
 }
@@ -266,7 +267,7 @@ void loop()
 
   play_at_step(mapped_pressure_value);
 
-  //Send feedback back to Shoe not constanly only at fixed intervals
+  //Send feedback back to Shoe not constanly only at fixed intervals note
   if (debug_mode)
   {
     unsigned long currentTime = millis();
@@ -274,7 +275,7 @@ void loop()
     {
       lastTimestamp = currentTime;
 
-      if (mapped_pressure_value != last_mapped_pressure_value)
+      if(true) //if (mapped_pressure_value != last_mapped_pressure_value) //just send stuff when something changes
       {
         last_mapped_pressure_value = mapped_pressure_value;
         String debug_message = "Pressure "+ String(last_mapped_pressure_value)+" Raw "+analogRead(34);

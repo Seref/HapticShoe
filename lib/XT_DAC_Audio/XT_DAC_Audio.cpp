@@ -684,7 +684,6 @@ void XT_Instrument_Class::SetFrequency(uint16_t Freq)
 	WaveForm->Init(-1);
 }
 
-
 void XT_Instrument_Class::Init()
 {
 	CurrentByte=0;
