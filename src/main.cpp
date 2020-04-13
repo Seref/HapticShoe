@@ -61,7 +61,7 @@ void get_pressure_sensor_value(uint16_t *value, uid_t measurements)
   for (int i = 0; i < measurements; i++)
   {
     pressureSensor.add(analogRead(34));
-    delay(20);
+    delay(20); // <----- DELAY?
   }
   *value = pressureSensor.getAverage();
   Serial.println("Current Pressurelevel " + String(*value));
@@ -204,7 +204,7 @@ void setup()
   ledcAttachPin(GREENLEDPIN, GREENLED);    
 
   //Load the initial compensation value from flash
-  initialPressureValue = EepromReadInt(INITIALVALUEADDRESS);    
+  initialPressureValue = EepromReadInt(INITIALVALUEADDRESS);    // <---- check this!
   Serial.println("Initial Pressure Value Loaded " + String(initialPressureValue));  
 }
 
