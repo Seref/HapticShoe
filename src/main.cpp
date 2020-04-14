@@ -16,6 +16,8 @@ XT_DAC_Audio_Class DacAudio(25,0);
 RunningMedian pressureSensor = RunningMedian(96);
 
 #define ADC_SAMPLES_COUNT 1000 //todo: check if this is good
+
+boolean useGrains = true;
 int16_t abuf[ADC_SAMPLES_COUNT];
 int16_t abufPos = 0;
 
@@ -136,6 +138,7 @@ inline void process_commands(String s, bool force)
       int16_t _duration =  (int16_t) get_value_from_string(s, ',', 4).toInt();
 
       // ---------------> write to the global variables here <--------------------
+      useGrains = true;
       
       VibeOutput.SetFrequency(_frequency);
       VibeOutput.SetDuration(_duration);
@@ -192,6 +195,8 @@ inline void process_commands(String s, bool force)
       int16_t _frequency = (int16_t) get_value_from_string(s, ',', 1).toInt();
       byte _amplitude =    (byte) get_value_from_string(s, ',', 2).toInt();      
       int16_t _duration =  (int16_t) get_value_from_string(s, ',', 3).toInt();
+
+      useGrains = false;
       
       VibeOutput.SetFrequency(_frequency);
       VibeOutput.SetDuration(_duration);
@@ -285,9 +290,25 @@ inline byte get_mapped_pressure_value(){
 
 
 uint16_t lastStep = 0;
+
 //Handles Granularity
 //todo: this function should check if a grain shoudl be played, and then find the right parameters and play them
+
+//original function
 inline void play_at_step(byte mappedPressure){
+    byte currentStep = (mappedPressure / granularity);
+    
+    if{useGrains}{
+    if(currentStep != lastStep){      
+      lastStep = currentStep;
+      DacAudio.StopAllSounds();
+      DacAudio.Play(&VibeOutput);
+    }   
+    } 
+}
+
+
+inline void play_at_step2(byte mappedPressure){
     byte currentStep = (mappedPressure / granularity);
 
     // ------------------->> change to check functions here (consider possible Chaos) <<---------------------
