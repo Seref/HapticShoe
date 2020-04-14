@@ -15,12 +15,12 @@ XT_DAC_Audio_Class DacAudio(25,0);
 //Runing Median to smooth out the bad readings, I also added a capacitor (just as recommended from the espressif documentation)
 RunningMedian pressureSensor = RunningMedian(96);
 
-#define ADC_SAMPLES_COUNT 1000
+#define ADC_SAMPLES_COUNT 1000 //todo: check if this is good
 int16_t abuf[ADC_SAMPLES_COUNT];
 int16_t abufPos = 0;
 
 uint16_t maxPressureValue = 4095;
-uint16_t initialPressureValue = 200;
+uint16_t initialPressureValue = 200; //todo: check this.
 
 
 byte amplitude = 255;   // amplitude 0-255  == 0%-100%
@@ -48,7 +48,7 @@ float randomValues[] = {-0.9696f, -0.7383f, -0.1374f, -0.0850f, -0.2379f, 0.3011
  -0.3909f, 0.4758f, 0.0272f, -0.4729f, 0.5858f, 0.7311f, -0.4239f, 0.4028f, 0.4614, -0.9315f, 0.0262f, -0.0108f, -0.6078f, 0.4519f, 0.8679f, 0.6265f, -0.1315f, 0.6465f, 
  0.0805f, 0.5181f, -0.0144f, 0.3810f, -0.5035f, 0.4240f, -0.4698f, 0.5364f, -0.6245f, -0.7053f, 0.9085f, 0.1422f, 0.6955f, -0.3405f, 0.2238f, -0.7505f, 0.2906f, 0.4683f, 
  -0.8711f, -0.9464f, 0.9163f, -0.0080f, 0.9776f, 0.2133f, -0.6037f, -0.5884f, -0.2536f, -0.9782f, 0.9295f, -0.3542f, 0.2352f, 0.4909f, 0.1730f, 0.0054f, -0.7615f, 0.0952f, 
- -0.8319f, -0.1384f, -0.3837f, -0.9065f,  0.2485f}
+ -0.8319f, -0.1384f, -0.3837f, -0.9065f,  0.2485f};
 
 char lastCommand[128];
 
@@ -290,15 +290,15 @@ uint16_t lastStep = 0;
 inline void play_at_step(byte mappedPressure){
     byte currentStep = (mappedPressure / granularity);
 
-    // ------------------->> change to check functions here <<---------------------
+    // ------------------->> change to check functions here (consider possible Chaos) <<---------------------
     
     if(true){    // if in new interval, play sound  
      Serial.println("FIX THIS");
      // update the vibe settings 
 
-     // VibeOutput.SetFrequency(_frequency); // <---- find right parameters
+     // VibeOutput.SetFrequency(_frequency+frequencyChaosLevel*chaosSeed); // <---- find right parameters
      // VibeOutput.SetDuration(_duration);
-     // VibeOutput.Volume = _amplitude;
+     // VibeOutput.Volume = _amplitude+amplitudeChaosLevel*chaosSeed;
 
       DacAudio.StopAllSounds();
       DacAudio.Play(&VibeOutput);
