@@ -93,6 +93,7 @@ void reset_granularity_parameters(byte gnb, byte exp, byte chaos)
   grainsNb = gnb;
   granularityExponent = exp;
   granularityChaosScalar = chaos;
+  srand(gnb); // initialize the random seed to always have the same random sequence (i.e., the same initial index) for this number of grains
   granularityChaosSeed = rand()*255;
 
   granularityMaxCurveValue = pow(grainsNb, granularityExponent);
@@ -142,6 +143,7 @@ void reset_frequency_parameters(int16_t minVal, int16_t maxVal, byte exp, byte c
   maxFreqValue = maxVal;
   frequencyExponent = exp;
   frequencyChaosScalar = chaos;
+  srand(maxFreqValue); // set random seed to always have the same initial index based on this max frequency
   frequencyChaosSeed = rand()*255;
 
   // get maximum value produced by the current curve
@@ -183,6 +185,7 @@ void reset_amplitude_parameters(int16_t minVal, int16_t maxVal, byte exp, byte c
   maxAmpValue = maxVal;
   amplitudeExponent = exp;
   amplitudeChaosScalar = chaos;
+  srand(maxAmpValue); // set random seed to always have the same initial index based on this max amplitude
   amplitudeChaosSeed = rand()*255;
 
   amplitudeMaxCurveValue = pow(grainsNb, amplitudeExponent);
