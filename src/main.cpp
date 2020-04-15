@@ -20,17 +20,16 @@ RunningMedian pressureSensor = RunningMedian(7);
 float previousValue = 0; //variable for temporarily storing previous value
 double linearizedPressureValue = 0; //made a global variable, so I can use it for debugging
 float apply_lowpass_filter(int _inputValue, float k){ 
-//float k = 0.35; //filter strength 0.00001 == very strong 0.99999 == very week
-float rawInput = (float)_inputValue;
-float filteredOutput = (rawInput*k)+(previousValue*(1-k));
-previousValue = filteredOutput;
-return filteredOutput;
+  //float k = 0.35; //filter strength 0.00001 == very strong 0.99999 == very week
+  float rawInput = (float)_inputValue;
+  float filteredOutput = (rawInput*k)+(previousValue*(1-k));
+  previousValue = filteredOutput;
+  return filteredOutput;
 }
 
 
 #define ADC_SAMPLES_COUNT 1000 //todo: check if this is good
 
-boolean useGrains = true;
 int16_t abuf[ADC_SAMPLES_COUNT];
 int16_t abufPos = 0;
 
@@ -39,9 +38,9 @@ uint16_t maxPressureValue = 2300;
 uint16_t initialPressureValue = 150; //todo: check this.
 //uint16_t initialPressureValue = 200; //todo: check this.
 
-byte amplitude = 255;   // amplitude 0-255  == 0%-100%
-byte granularity = 64;   // not sure if we might need more values
-int frequency = 5;      // I may have to change this to float
+// byte amplitude = 255;   // amplitude 0-255  == 0%-100%
+// byte granularity = 64;   // not sure if we might need more values
+// int frequency = 5;      // I may have to change this to float
 
 // duration is now automatically computed by default; if forced, the duration value is used
 boolean forceDuration = false;
@@ -59,8 +58,6 @@ float randomValues[] = {-0.9696f, -0.7383f, -0.1374f, -0.0850f, -0.2379f, 0.3011
  0.0805f, 0.5181f, -0.0144f, 0.3810f, -0.5035f, 0.4240f, -0.4698f, 0.5364f, -0.6245f, -0.7053f, 0.9085f, 0.1422f, 0.6955f, -0.3405f, 0.2238f, -0.7505f, 0.2906f, 0.4683f, 
  -0.8711f, -0.9464f, 0.9163f, -0.0080f, 0.9776f, 0.2133f, -0.6037f, -0.5884f, -0.2536f, -0.9782f, 0.9295f, -0.3542f, 0.2352f, 0.4909f, 0.1730f, 0.0054f, -0.7615f, 0.0952f, 
  -0.8319f, -0.1384f, -0.3837f, -0.9065f,  0.2485f};
-
-// added by Bruno: variables for granularity
 
 
 /* #region Granularity */ 
@@ -288,16 +285,6 @@ inline void process_commands(String s, bool force)
         duration = sdur.toInt();
       }
 
-      // ---------------> write to the global variables here <--------------------
-      useGrains = true;
-      
-      // VibeOutput.SetFrequency(_frequency);
-      // VibeOutput.SetDuration(_duration);
-      // VibeOutput.Volume = _amplitude;
-      //DacAudio.Play(&VibeOutput);
-
-      // granularity = (255/_granularity);
-
       reset_granularity_parameters(_granularity, 1, 0); // important to set granularity first, the other dimensions depend on it
       reset_frequency_parameters(0, _frequency, 0, 0); // static frequency
       reset_amplitude_parameters(0, _amplitude, 0, 0); // static amplitude
@@ -350,8 +337,6 @@ inline void process_commands(String s, bool force)
       int16_t _frequency = (int16_t) get_value_from_string(s, ',', 1).toInt();
       byte _amplitude =    (byte) get_value_from_string(s, ',', 2).toInt();      
       int16_t _duration =  (int16_t) get_value_from_string(s, ',', 3).toInt();
-
-      useGrains = false;
       
       VibeOutput.SetFrequency(_frequency);
       VibeOutput.SetDuration(_duration);
@@ -370,6 +355,7 @@ inline void process_commands(String s, bool force)
       byte exp = (byte) get_value_from_string(s, ',', 2).toInt();
       byte chaos = (byte) get_value_from_string(s, ',', 3).toInt();      
     
+      if(exp == 0) { exp = 1; } // can't have a constant granularity -> this is an unstopped wave
       reset_granularity_parameters(gnb, exp, chaos);
 
       // need to force reset of frequency and amplitude here as they need the correct #grains
@@ -378,7 +364,7 @@ inline void process_commands(String s, bool force)
       reset_amplitude_parameters(minAmpValue, maxAmpValue, amplitudeExponent, amplitudeChaosScalar);
 
       //DacAudio.Play(&VibeOutput);
-      Serial.println("New Granularity: " + String(grainsNb) + " grains, x^" + String(granularityExponent) + ", choas level: " + String(granularityChaosScalar));              
+      Serial.println("New Granularity: " + String(grainsNb) + " grains, x^" + String(granularityExponent) + ", chaos level: " + String(granularityChaosScalar));              
     }
     break;
     case 7: // frequency - 1 or amplitude - 2 curve + chaos
@@ -394,8 +380,10 @@ inline void process_commands(String s, bool force)
 
       if(parameter == 1) {
         reset_frequency_parameters(minValue, maxValue, exp, chaos);
+        Serial.println("New Frequency: " + String(minValue) + " - " + String(maxValue) + ", x^" + String(exp) + ", chaos level: " + String(chaos));
       } else if(parameter == 2) {
         reset_amplitude_parameters(minValue, maxValue, exp, chaos);
+        Serial.println("New Amplitude: " + String(minValue) + " - " + String(maxValue) + ", x^" + String(exp) + ", chaos level: " + String(chaos));
       }
     }
     break;
@@ -403,31 +391,7 @@ inline void process_commands(String s, bool force)
   }  
 }
 
-void setup()
-{
-  delay(10);
 
-  //Start Serial Connection
-  Serial.begin(115200);
-
-  //Init emulated EEPROM (flash) with 2 bytes for a 16bit value
-  EEPROM.begin(2);
-
-  //Setup Pins for LEDs, Pressure Readings
-  pinMode(34, INPUT);
-
-  ledcSetup(REDLED, 5000, 8);
-  ledcSetup(GREENLED, 5000, 8);
-  ledcSetup(BLUELED, 5000, 8);
-
-  ledcAttachPin(BLUELEDPIN, BLUELED);
-  ledcAttachPin(REDLEDPIN, REDLED);
-  ledcAttachPin(GREENLEDPIN, GREENLED);    
-
-  //Load the initial compensation value from flash
-  initialPressureValue = EepromReadInt(INITIALVALUEADDRESS);    // <---- check this!
-  Serial.println("Initial Pressure Value Loaded " + String(initialPressureValue));  
-}
 
 // this is the messy part where I try to process the pressure readings to something that is universal for everyone person
 // ToDo: FIX ME!
@@ -460,26 +424,27 @@ inline byte get_mapped_pressure_value(){
 
 
 
+
 uint16_t lastStep = 0;
 
 //Handles Granularity
 //todo: this function should check if a grain shoudl be played, and then find the right parameters and play them
 
 //original function
-inline void play_at_step(byte mappedPressure){
-    byte currentStep = (mappedPressure / granularity);
+// inline void play_at_step(byte mappedPressure){
+//     byte currentStep = (mappedPressure / granularity);
     
-    if(useGrains) {
-      if(currentStep != lastStep) {      
-        lastStep = currentStep;
-        DacAudio.StopAllSounds();
-        DacAudio.Play(&VibeOutput);
-      }   
-    } 
-}
+//     if(useGrains) {
+//       if(currentStep != lastStep) {      
+//         lastStep = currentStep;
+//         DacAudio.StopAllSounds();
+//         DacAudio.Play(&VibeOutput);
+//       }   
+//     } 
+// }
 
 
-inline void play_at_step2(byte mappedPressure){
+inline void play_at_step(byte mappedPressure){
     // byte currentStep = (mappedPressure / granularity);
 
     // ------------------->> change to check functions here (consider possible Chaos) <<---------------------
@@ -524,7 +489,7 @@ inline void play_at_step2(byte mappedPressure){
      // VibeOutput.Volume = _amplitude+amplitudeChaosLevel*chaosSeed;
 
       VibeOutput.SetFrequency(compute_frequency(lastGrainIndex, true));
-      if(!forceDuration) { VibeOutput.SetDuration(compute_duration(lastGrainIndex, true)); }
+      if(!forceDuration) { VibeOutput.SetDuration(compute_duration(lastGrainIndex)); }
       else { VibeOutput.SetDuration(duration); }
       VibeOutput.Volume = compute_amplitude(lastGrainIndex, true);
 
@@ -532,6 +497,52 @@ inline void play_at_step2(byte mappedPressure){
       DacAudio.Play(&VibeOutput);
     }    
 }
+
+
+
+
+void setup()
+{
+  delay(10);
+
+  //Start Serial Connection
+  Serial.begin(115200);
+
+  //Init emulated EEPROM (flash) with 2 bytes for a 16bit value
+  EEPROM.begin(2);
+
+  //Setup Pins for LEDs, Pressure Readings
+  pinMode(34, INPUT);
+
+  ledcSetup(REDLED, 5000, 8);
+  ledcSetup(GREENLED, 5000, 8);
+  ledcSetup(BLUELED, 5000, 8);
+
+  ledcAttachPin(BLUELEDPIN, BLUELED);
+  ledcAttachPin(REDLEDPIN, REDLED);
+  ledcAttachPin(GREENLEDPIN, GREENLED);    
+
+  //Load the initial compensation value from flash
+  initialPressureValue = EepromReadInt(INITIALVALUEADDRESS);    // <---- check this!
+  Serial.println("Initial Pressure Value Loaded " + String(initialPressureValue));  
+
+  //FIXME setting parameters here create an error later when pressing the shoe
+  // initialize all parameters to default values
+  // reset_granularity_parameters(20, 1, 0);
+  // reset_frequency_parameters(0, 350, 0, 0); // static frequency of 350
+  // reset_amplitude_parameters(0, 15, 0, 0); // static amplitude of 15
+
+  // // need to set the right interval for granularity in case the initial pressure value is not 0
+  // byte pressure = get_mapped_pressure_value();
+  // while(maxBoundValue < pressure) { 
+  //   minBoundIndex = maxBoundIndex;
+  //   minBoundValue = maxBoundValue; 
+  //   maxBoundValue = compute_grain_level(++maxBoundIndex, true); // in theory, impossible to overshoot so no need to check upper limit
+  // }
+  // Serial.println(String(pressure) + " " + String(minBoundIndex) + " " + String(maxBoundIndex));
+}
+
+
 
 unsigned long lastTimestamp = 0;
 byte last_mapped_pressure_value = 0;
@@ -550,7 +561,7 @@ void loop()
   //display the current pressure value
   ledcWrite(BLUELED, ledValue[mapped_pressure_value]);
 
-  play_at_step2(mapped_pressure_value);
+  play_at_step(mapped_pressure_value);
 
   //Send feedback back to Shoe not constanly only at fixed intervals note
   if (debug_mode) // <--- ToDo (later) maybe add a streaming mode for recording footstep
