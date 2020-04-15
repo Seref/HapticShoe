@@ -521,7 +521,7 @@ inline void play_at_step2(byte mappedPressure){
      // VibeOutput.Volume = _amplitude+amplitudeChaosLevel*chaosSeed;
 
       VibeOutput.SetFrequency(compute_frequency(lastGrainIndex, true));
-      if(!forceDuration) { VibeOutput.SetDuration(compute_frequency(lastGrainIndex, true)); }
+      if(!forceDuration) { VibeOutput.SetDuration(compute_duration(lastGrainIndex, true)); }
       else { VibeOutput.SetDuration(duration); }
       VibeOutput.Volume = compute_amplitude(lastGrainIndex, true);
 
