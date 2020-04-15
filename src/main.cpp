@@ -13,7 +13,20 @@
 XT_DAC_Audio_Class DacAudio(25,0);
 
 //Runing Median to smooth out the bad readings, I also added a capacitor (just as recommended from the espressif documentation)
-RunningMedian pressureSensor = RunningMedian(96);
+RunningMedian pressureSensor = RunningMedian(7);
+
+
+//filter stuff
+float previousValue = 0; //variable for temporarily storing previous value
+double linearizedPressureValue = 0; //made a global variable, so I can use it for debugging
+float apply_lowpass_filter(int _inputValue, float k){ 
+//float k = 0.35; //filter strength 0.00001 == very strong 0.99999 == very week
+float rawInput = (float)_inputValue;
+float filteredOutput = (rawInput*k)+(previousValue*(1-k));
+previousValue = filteredOutput;
+return filteredOutput;
+}
+
 
 #define ADC_SAMPLES_COUNT 1000 //todo: check if this is good
 
@@ -21,9 +34,10 @@ boolean useGrains = true;
 int16_t abuf[ADC_SAMPLES_COUNT];
 int16_t abufPos = 0;
 
-uint16_t maxPressureValue = 4095;
-uint16_t initialPressureValue = 200; //todo: check this.
-
+//uint16_t maxPressureValue = 4095;
+uint16_t maxPressureValue = 2300;
+uint16_t initialPressureValue = 150; //todo: check this.
+//uint16_t initialPressureValue = 200; //todo: check this.
 
 byte amplitude = 255;   // amplitude 0-255  == 0%-100%
 byte granularity = 64;   // not sure if we might need more values
@@ -54,7 +68,7 @@ float randomValues[] = {-0.9696f, -0.7383f, -0.1374f, -0.0850f, -0.2379f, 0.3011
 byte grainsNb;   // number of grains
 byte granularityExponent = 1; // exponent n of the function f(x) = x^n
 byte granularityChaosScalar = 0; // no chaos by default - we use this scalar as a factor for the random values above
-byte granularityChaosSeed = rand()*255; // starting index in the random values - the value is assigned everytime we reset the granularity parameters
+  byte granularityChaosSeed = rand()*255; // starting index in the random values - the value is assigned everytime we reset the granularity parameters
 
 byte granularityMaxCurveValue; // maximum value produced by the curved -> need this variable to remap
 byte minBoundValue, maxBoundValue; // closest lower and higher grains
@@ -145,7 +159,7 @@ byte amplitudeExponent; // exponent n of the function f(x) = x^n
 byte amplitudeChaosScalar = 0; // no chaos by default - we use this scalar as a factor for the random values above
 byte amplitudeChaosSeed = rand()*255; // starting index in the random values - the value is assigned everytime we reset the granularity parameters 
 
-// compute the *frequency*
+// compute the *Amplitude*
 byte compute_amplitude(byte grainIndex, boolean remap)
 {
   if(amplitudeExponent == 0) { // if the amplitude is static, we simply return a constant (+- chaos if needed)
@@ -176,15 +190,6 @@ void reset_amplitude_parameters(int16_t minVal, int16_t maxVal, byte exp, byte c
 
 
 /* #endregion */
-
-// //added by paul, just ideas:
-// float amplitudeFactor = 1; // exponent for amplitude curve
-// float granularityFactor = 1; // 
-// float durationFactor = 1; // (maybe we need a setting where duration == wavelength or duration == (wavelength/2))
-
-// float amplitudeChaosLevel = 0; //factor for adding chaos
-// float granularityChaosLevel = 1; // 
-// float durationChaosLevel = 1; //
 
 
 
@@ -220,7 +225,7 @@ void get_pressure_sensor_value(uint16_t *value, uid_t measurements)
   for (int i = 0; i < measurements; i++)
   {
     pressureSensor.add(analogRead(34));
-    delay(20); // <----- DELAY?
+    delay(1); // <----- DELAY? (was 20)
   }
   *value = pressureSensor.getAverage();
   Serial.println("Current Pressurelevel " + String(*value));
@@ -274,9 +279,9 @@ inline void process_commands(String s, bool force)
       // int16_t _duration =  (int16_t) get_value_from_string(s, ',', 4).toInt();
       String sdur = get_value_from_string(s, ',', 4);
       if(sdur.equals("")) {
-        forceDuration = false;
-      } else {
         forceDuration = true;
+      } else {
+        forceDuration = false;
         duration = sdur.toInt();
       }
 
@@ -438,14 +443,16 @@ inline byte get_mapped_pressure_value(){
   pressureSensor.add(pressureValue);
 
   int averagePressureValue = pressureSensor.getMedian(); // <----------ToDo:  replace with lowpass filter
+  double filteredPressureValue = apply_lowpass_filter(averagePressureValue, 0.0025f); //using double for more precision
+   linearizedPressureValue = pow((filteredPressureValue/250),3.8); //linearize
   //now remove any values that exceed our upper bound
-  if (averagePressureValue > maxPressureValue)
+  if (linearizedPressureValue > maxPressureValue)
   {
-    averagePressureValue = maxPressureValue;
+    linearizedPressureValue = maxPressureValue;
   }
 
   //now interpolate the values to a range that goes from 0-255 this "unifies" the values so that every person get's the same (nothing)0-255(person's max weight) readings
-  return map(averagePressureValue, 0, maxPressureValue, 0, 255);
+  return map(linearizedPressureValue, 0, maxPressureValue, 0, 255);
 }
 
 
@@ -462,7 +469,7 @@ inline void play_at_step(byte mappedPressure){
     if(useGrains) {
       if(currentStep != lastStep) {      
         lastStep = currentStep;
-        // DacAudio.StopAllSounds();
+        DacAudio.StopAllSounds();
         DacAudio.Play(&VibeOutput);
       }   
     } 
@@ -540,7 +547,7 @@ void loop()
   //display the current pressure value
   ledcWrite(BLUELED, ledValue[mapped_pressure_value]);
 
-  play_at_step(mapped_pressure_value);
+  play_at_step2(mapped_pressure_value);
 
   //Send feedback back to Shoe not constanly only at fixed intervals note
   if (debug_mode) // <--- ToDo (later) maybe add a streaming mode for recording footstep
@@ -553,7 +560,7 @@ void loop()
       if(true) //if (mapped_pressure_value != last_mapped_pressure_value) //just send stuff when something changes
       {
         last_mapped_pressure_value = mapped_pressure_value;
-        String debug_message = "Pressure "+ String(last_mapped_pressure_value)+" Raw "+analogRead(34);
+        String debug_message = "Pressure "+ String(last_mapped_pressure_value*8) +", " +"Linearized Pressure "+ String(linearizedPressureValue)+", Filtered Pressure "+ String(previousValue)+", Raw "+ String(analogRead(34)-initialPressureValue);
 
         Serial.println(debug_message);
       }
@@ -561,3 +568,4 @@ void loop()
           
   }    
 }
+
