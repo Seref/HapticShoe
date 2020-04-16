@@ -49,16 +49,27 @@ int16_t duration = 20;  // duration in ms
 //for having consistant random values
 //source: https://xkcd.com/221/
 //multiply these by the chaos factor
-float randomValues[] = {-0.9696f, -0.7383f, -0.1374f, -0.0850f, -0.2379f, 0.3011f, -0.5341f, -0.1069f, 0.3108f, 0.0580f, 0.9292f, -0.4195f, -0.2400f, 0.0213f, -0.8425f, -0.6613f,
- -0.7800f, -0.8816f, 0.4157f, -0.0363f, -0.1545f, 0.5518f, 0.0889f, 0.8727f, 0.9513f, 0.9752f, 0.7474f, 0.2842f, 0.5548f, 0.1845f, 0.7581f, -0.0808f, -0.6798f, -0.2080f, -0.5668f,
- -0.8043f, 0.2940f, -0.8670f, 0.7110f, -0.4398f, -0.2438f, -0.8420f, -0.1654f, 0.0724f, 0.7223f, 0.4637f, -0.6736f, 0.9125f, 0.4487f, -0.7509, -0.6757f, -0.1911f, 0.8103f, -0.9485f,
-  0.5773f, 0.8865f, 0.8458f, 0.5566f, -0.3487f, 0.3852f, 0.6393f, -0.2699f, 0.9548f, -0.5603f, -0.3076f, 0.5236f, 0.5266f, 0.6133f, -0.1148f,  0.7357f, -0.5228f, 0.4441f, 0.7740f,
- -0.3753f, -0.8164f, 0.7215f, 0.1414f, -0.6175f, -0.1875f, -0.1939f, 0.8325f, 0.5320f, -0.4221f, -0.8863f, -0.3980f, 0.1201f, -0.2651f,   -0.5098f, 0.3361f, -0.2304f, -0.7100f,
- -0.3909f, 0.4758f, 0.0272f, -0.4729f, 0.5858f, 0.7311f, -0.4239f, 0.4028f, 0.4614, -0.9315f, 0.0262f, -0.0108f, -0.6078f, 0.4519f, 0.8679f, 0.6265f, -0.1315f, 0.6465f, 
- 0.0805f, 0.5181f, -0.0144f, 0.3810f, -0.5035f, 0.4240f, -0.4698f, 0.5364f, -0.6245f, -0.7053f, 0.9085f, 0.1422f, 0.6955f, -0.3405f, 0.2238f, -0.7505f, 0.2906f, 0.4683f, 
- -0.8711f, -0.9464f, 0.9163f, -0.0080f, 0.9776f, 0.2133f, -0.6037f, -0.5884f, -0.2536f, -0.9782f, 0.9295f, -0.3542f, 0.2352f, 0.4909f, 0.1730f, 0.0054f, -0.7615f, 0.0952f, 
- -0.8319f, -0.1384f, -0.3837f, -0.9065f,  0.2485f};
+byte rvNb = 255; // size of the randomValues array
+float randomValues[] = { -0.8909f,0.2538f,0.4904f,0.75f,-0.2833f,0.3298f,0.4539f,-0.8135f,-0.1595f,0.5388f,-0.8456f,
+0.6324f,0.2644f,-0.2751f,0.2321f,0.5411f,-0.069f,-0.8031f,0.7303f,-0.2281f,0.531f,-0.9253f,-0.1213f,-0.5805f,-0.2507f,
+-0.9697f,-0.2586f,-0.6236f,-0.1116f,-0.3419f,0.8754f,-0.377f,0.3225f,0.4548f,0.2876f,-0.8417f,-0.4124f,-0.7076f,0.399f,
+-0.9862f,-0.764f,-0.3147f,-0.8101f,0.566f,0.5388f,-0.8506f,0.6395f,-0.8267f,0.1767f,0.1509f,-0.1278f,-0.7367f,0.9241f,
+0.4417f,-0.785f,0.5816f,-0.5467f,-0.3627f,0.7075f,0.6421f,-0.588f,0.1157f,0.1416f,-0.1847f,0.6607f,-0.6565f,0.402f,0.9188f,
+0.414f,0.6137f,0.8814f,-0.449f,-0.8157f,-0.2447f,0.4096f,0.0937f,-0.3459f,-0.6725f,0.268f,-0.7573f,-0.949f,-0.5676f,0.3419f,
+0.6405f,0.3873f,-0.5851f,-0.6635f,0.1151f,-0.8192f,-0.497f,-0.1897f,0.3672f,0.8501f,-0.7185f,-0.7521f,-0.5164f,0.6666f,
+-0.5112f,-0.6369f,-0.4217f,0.6005f,0.17f,-0.1816f,-0.4028f,-0.7997f,0.9511f,-0.8107f,0.3134f,0.969f,0.4102f,0.6205f,0.324f,
+-0.9549f,0.0058f,0.3563f,-0.1075f,-0.2954f,0.4392f,-0.2667f,-0.4031f,-0.2123f,0.1851f,-0.0034f,0.0255f,0.8106f,-0.3232f,
+0.3028f,0.0323f,-0.1564f,0.5743f,0.8884f,-0.515f,-0.1989f,-0.3077f,0.3381f,0.5863f,-0.4282f,-0.0748f,-0.7515f,0.8101f,
+-0.3511f,-0.709f,0.4371f,-0.8021f,0.4543f,-0.9822f,0.319f,-0.5904f,0.6233f,0.1182f,0.7887f,-0.2887f,-0.6145f,0.489f,-0.2738f,
+-0.4012f,-0.4878f,-0.4563f,-0.781f,0.4997f,-0.3466f,-0.3978f,0.5037f,0.2296f,0.2989f,0.409f,0.6721f,0.8646f,-0.5008f,0.1501f,
+0.2457f,0.9214f,0.3602f,-0.3235f,-0.4684f,0.5841f,-0.9264f,0.1935f,-0.8311f,-0.8753f,-0.8925f,-0.5282f,-0.3907f,0.8803f,0.4182f,
+0.6001f,-0.2588f,-0.1521f,-0.4074f,0.8464f,-0.9337f,0.1638f,0.1716f,0.8362f,-0.0605f,-0.2011f,0.0135f,-0.0881f,0.4376f,-0.4115f,
+-0.1019f,-0.2473f,0.6075f,0.6295f,0.2242f,-0.8903f,-0.4468f,0.1244f,0.7364f,-0.2265f,0.1948f,-0.5735f,-0.084f,-0.5604f,0.3941f,
+0.173f,0.5524f,0.0142f,0.4948f,-0.0987f,-0.6867f,0.3425f,-0.5745f,0.5013f,-0.5693f,-0.1514f,0.4609f,-0.357f,-0.3126f,0.899f,
+0.6771f,0.7978f,0.4066f,0.053f,-0.943f,-0.2009f,0.0042f,0.1819f,0.8908f,-0.7376f,-0.0111f,0.8684f,-0.6467f,-0.29f,-0.6037f,
+0.1171f,0.1398f,-0.1724f,-0.0264f,0.6255f,-0.1737f,-0.2231f,-0.164f,0.9396f,0.6087f };
 
+// NEED ALSO NEGATIVE NUMBERS
 
 /* #region Granularity */ 
 
@@ -80,7 +91,8 @@ byte compute_grain_level(byte grainIndex, boolean remap)
   double value = pow(grainIndex, granularityExponent);
   if(remap) { value *= 255.0 / granularityMaxCurveValue; }
   // return (byte) value; // remap to have a value in 0-255
-  return (byte) value + randomValues[(granularityChaosSeed + grainIndex)%255]*granularityChaosScalar; // probably need a random seed to avoid having always the same values represented
+  // Serial.println("Seed " + String(granularityChaosSeed) + ", Index " + String((granularityChaosSeed + grainIndex)%rvNb) + ", Factor " + String(randomValues[(granularityChaosSeed + grainIndex)%rvNb]) + ", Value "+ String(randomValues[(granularityChaosSeed + grainIndex)%rvNb]*granularityChaosScalar));
+  return (byte) value + randomValues[(granularityChaosSeed + grainIndex)%rvNb]*granularityChaosScalar; // probably need a random seed to avoid having always the same values represented
 }
 
 // reset all parameters related to granularity based on the number of grains and the exponent
@@ -91,7 +103,7 @@ void reset_granularity_parameters(byte gnb, byte exp, byte chaos)
   granularityExponent = exp;
   granularityChaosScalar = chaos;
   srand(gnb); // initialize the random seed to always have the same random sequence (i.e., the same initial index) for this number of grains
-  granularityChaosSeed = rand()*255;
+  granularityChaosSeed = rand()*rvNb;
 
   granularityMaxCurveValue = pow(grainsNb, granularityExponent);
   minBoundIndex = 0; minBoundValue = 0;
@@ -195,7 +207,10 @@ void reset_amplitude_parameters(int16_t minVal, int16_t maxVal, byte exp, byte c
 
 char lastCommand[128];
 
+bool useGrains = true; // avoid conflicts when playing waves (command ID: 5)
+
 bool debug_mode = false;
+
 
 uint16_t update_spacing = 20; //in ms rate at which serial should send stuff
 
@@ -272,6 +287,8 @@ inline void process_commands(String s, bool force)
     {
     case 0: // set parameters; duration is now automatically computed
     {
+      useGrains = true;
+
       strcpy(lastCommand, s.c_str());  
       byte _granularity =  (byte) get_value_from_string(s, ',', 1).toInt();      
       int16_t _frequency = (int16_t) get_value_from_string(s, ',', 2).toInt();
@@ -333,6 +350,8 @@ inline void process_commands(String s, bool force)
     break;
     case 5: //Play Wave
     {
+      useGrains = false;
+
       strcpy(lastCommand, s.c_str());        
       int16_t _frequency = (int16_t) get_value_from_string(s, ',', 1).toInt();
       byte _amplitude =    (byte) get_value_from_string(s, ',', 2).toInt();      
@@ -340,7 +359,7 @@ inline void process_commands(String s, bool force)
       
       VibeOutput.SetFrequency(_frequency);
       VibeOutput.SetDuration(_duration);
-      VibeOutput.Volume = _amplitude;
+      VibeOutput.Volume = (byte) ((_amplitude/100.0)*127.0); // amplitude should be between 0-30%
       DacAudio.Play(&VibeOutput);
 
       Serial.println("Received: " + String(_frequency) + " " + String(_amplitude)) + " " + String(_duration);
@@ -348,6 +367,8 @@ inline void process_commands(String s, bool force)
     break;
     case 6: // granularity curve + chaos
     {
+      useGrains = true;
+      
       strcpy(lastCommand, s.c_str());  
 
       // parameters: #grains, exponent, chaos scalar
@@ -369,6 +390,8 @@ inline void process_commands(String s, bool force)
     break;
     case 7: // frequency - 1 or amplitude - 2 curve + chaos
     {
+      useGrains = true;
+
       strcpy(lastCommand, s.c_str());
 
       // parameters: min value, max value, exponent, chaos scalar
@@ -479,6 +502,7 @@ inline void play_at_step(byte mappedPressure){
       maxBoundValue = compute_grain_level(maxBoundIndex, true);
     }
 
+    Serial.println("MinBound " + String(minBoundValue) + ", MaxBound " + String(maxBoundValue));
 
     if(playGrain){    // if in new interval, play sound  
     //  Serial.println("FIX THIS");
@@ -491,7 +515,7 @@ inline void play_at_step(byte mappedPressure){
       VibeOutput.SetFrequency(compute_frequency(lastGrainIndex, true));
       if(!forceDuration) { VibeOutput.SetDuration(compute_duration(lastGrainIndex)); }
       else { VibeOutput.SetDuration(duration); }
-      VibeOutput.Volume = compute_amplitude(lastGrainIndex, true);
+      VibeOutput.Volume = (compute_amplitude(lastGrainIndex, true)/100.0)*127.0;
 
       DacAudio.StopAllSounds();
       DacAudio.Play(&VibeOutput);
@@ -524,7 +548,7 @@ void setup()
 
   //Load the initial compensation value from flash
   initialPressureValue = EepromReadInt(INITIALVALUEADDRESS);    // <---- check this!
-  Serial.println("Initial Pressure Value Loaded " + String(initialPressureValue));  
+  // Serial.println("Initial Pressure Value Loaded " + String(initialPressureValue));  
 
   //FIXME setting parameters here create an error later when pressing the shoe
   // initialize all parameters to default values
@@ -561,7 +585,7 @@ void loop()
   //display the current pressure value
   ledcWrite(BLUELED, ledValue[mapped_pressure_value]);
 
-  play_at_step(mapped_pressure_value);
+  if(useGrains) { play_at_step(mapped_pressure_value); }
 
   //Send feedback back to Shoe not constanly only at fixed intervals note
   if (debug_mode) // <--- ToDo (later) maybe add a streaming mode for recording footstep
