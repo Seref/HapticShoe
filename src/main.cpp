@@ -78,7 +78,7 @@ float granularityExponent = 1.0f; // exponent n of the function f(x) = x^n
 byte granularityChaosScalar = 0; // no chaos by default - we use this scalar as a factor for the random values above
 byte granularityChaosSeed = rand()*rvNb; // starting index in the random values - the value is assigned everytime we reset the granularity parameters
 
-byte granularityMaxCurveValue; // maximum value produced by the curved -> need this variable to remap
+double granularityMaxCurveValue; // maximum value produced by the curved -> need this variable to remap
 byte minBoundValue, maxBoundValue; // closest lower and higher grains
 byte minBoundIndex, maxBoundIndex; // indices of the bounds (should be between 0-#grains)
 byte lastGrainIndex = 0; // we record the last grain played to avoid rebounce - 0 means no grain was played yet
@@ -86,7 +86,7 @@ byte lastGrainIndex = 0; // we record the last grain played to avoid rebounce - 
 // to keep in mind: do we need to reset these values at some point? (e.g., configuration changed)
 
 // compute the *force level* for the given grain index
-byte compute_grain_level(byte grainIndex, boolean remap)
+double compute_grain_level(byte grainIndex, boolean remap)
 {
   if(grainIndex == 0) { return 0; }
   else if(grainIndex == grainsNb) { return 255; }
@@ -95,7 +95,7 @@ byte compute_grain_level(byte grainIndex, boolean remap)
   if(remap) { value *= 255.0 / granularityMaxCurveValue; }
   // return (byte) value; // remap to have a value in 0-255
   // Serial.println("Seed " + String(granularityChaosSeed) + ", Index " + String((granularityChaosSeed + grainIndex)%rvNb) + ", Factor " + String(randomValues[(granularityChaosSeed + grainIndex)%rvNb]) + ", Value "+ String(randomValues[(granularityChaosSeed + grainIndex)%rvNb]*granularityChaosScalar));
-  return (byte) value + randomValues[(granularityChaosSeed + grainIndex)%rvNb]*granularityChaosScalar; // probably need a random seed to avoid having always the same values represented
+  return value + randomValues[(granularityChaosSeed + grainIndex)%rvNb]*granularityChaosScalar; // probably need a random seed to avoid having always the same values represented
 }
 
 // reset all parameters related to granularity based on the number of grains and the exponent
@@ -111,13 +111,14 @@ void reset_granularity_parameters(byte gnb, float exp, byte chaos)
   if(granularityChaosScalar > 255.0/(2*grainsNb)) { Serial.println("Chaos granularity is too high."); }
 
   granularityMaxCurveValue = pow(grainsNb, granularityExponent);
+  Serial.println("Max granularity: " + String(granularityMaxCurveValue));
   minBoundIndex = 0; minBoundValue = 0;
   maxBoundIndex = 1; maxBoundValue = compute_grain_level(maxBoundIndex, true);
   lastGrainIndex = 0;
  
   // print all grain levels
   String s = "Granularity: ";
-  for(int i = 0; i < grainsNb; i++) { s += String(compute_grain_level(i, true))+","; }
+  for(int i = 0; i < grainsNb+1; i++) { s += String(compute_grain_level(i, true))+","; }
   Serial.println(s);
 }
 
@@ -125,7 +126,7 @@ void reset_granularity_parameters(byte gnb, float exp, byte chaos)
 
 
 /* #region Frequency */
-int16_t frequencyMaxCurveValue; // maximum value that we can get with the current curve of the frequency (i.e., f(#grains))
+double frequencyMaxCurveValue; // maximum value that we can get with the current curve of the frequency (i.e., f(#grains))
 int16_t minFreqValue, maxFreqValue; // interval used for the custom curve
 float frequencyExponent = 0.f; // exponent n of the function f(x) = x^n
 byte frequencyChaosScalar = 0; // no chaos by default - we use this scalar as a factor for the random values above
@@ -133,7 +134,7 @@ byte frequencyChaosSeed = rand()*rvNb; // starting index in the random values - 
 bool frequencyDecrease = false; // if non static, frequencies increase (false) or decrease (true)
 
 // compute the *frequency*
-int compute_frequency(byte grainIndex, boolean remap)
+double compute_frequency(byte grainIndex, boolean remap)
 {
   if(frequencyExponent == 0.f) { // if the frequency is static, we simply return a constant (+- chaos if needed)
     return maxFreqValue + frequencyChaosScalar*randomValues[(frequencyChaosSeed + grainIndex) % 255];
@@ -154,9 +155,9 @@ int compute_frequency(byte grainIndex, boolean remap)
 }
 
 // we want durations above 4ms 
-byte compute_duration(int frequency) {
-  byte duration = 1000 / frequency;
-  while(duration < 4) { duration *= 2; }
+byte compute_duration(double frequency) {
+  byte duration = 1000.0 / frequency;
+  while(duration < 4.0) { duration *= 2.0; }
   return duration;
 }
 
@@ -184,7 +185,7 @@ void reset_frequency_parameters(int16_t minVal, int16_t maxVal, float exp, byte 
   
   // print all grain frequencies
   String s = "Frequency: ";
-  for(int i = 0; i < grainsNb; i++) { s += String(compute_frequency(i, true))+","; }
+  for(int i = 0; i < grainsNb+1 ; i++) { s += String(compute_frequency(i, true))+","; }
   Serial.println(s);
 }
 
@@ -193,7 +194,7 @@ void reset_frequency_parameters(int16_t minVal, int16_t maxVal, float exp, byte 
 
 
 /* #region Amplitude */ 
-int16_t amplitudeMaxCurveValue; // maximum value that we can get with the current curve of the amplitude (i.e., f(#grains))
+double amplitudeMaxCurveValue; // maximum value that we can get with the current curve of the amplitude (i.e., f(#grains))
 int16_t minAmpValue, maxAmpValue; // interval used for the custom curve
 float amplitudeExponent = 0.f; // exponent n of the function f(x) = x^n
 byte amplitudeChaosScalar = 0; // no chaos by default - we use this scalar as a factor for the random values above
@@ -201,7 +202,7 @@ byte amplitudeChaosSeed = rand()*rvNb; // starting index in the random values - 
 bool amplitudeDecrease = false;
 
 // compute the *Amplitude*
-byte compute_amplitude(byte grainIndex, boolean remap)
+double compute_amplitude(byte grainIndex, boolean remap)
 {
   if(amplitudeExponent == 0) { // if the amplitude is static, we simply return a constant (+- chaos if needed)
     return (byte) maxAmpValue + amplitudeChaosScalar*randomValues[(amplitudeChaosSeed + grainIndex) % rvNb];
@@ -217,8 +218,8 @@ byte compute_amplitude(byte grainIndex, boolean remap)
   if(amplitudeDecrease) {
     value = minAmpValue + maxAmpValue - value;
   }
-  value += (byte) amplitudeChaosScalar*randomValues[(amplitudeChaosSeed + grainIndex) % rvNb];
-  return (byte) value; // probably need a random seed to avoid having always the same values represented
+  value += amplitudeChaosScalar*randomValues[(amplitudeChaosSeed + grainIndex) % rvNb];
+  return value; // probably need a random seed to avoid having always the same values represented
 }
 
 // reset all parameters related to amplitude based on the number of grains and the exponent. This function considers that the force input is by default at 0
@@ -242,7 +243,7 @@ void reset_amplitude_parameters(int16_t minVal, int16_t maxVal, float exp, byte 
   
   // print all grain frequencies
   String s = "Amplitude ";
-  for(int i = 0; i < grainsNb; i++) { s += String(compute_amplitude(i, true))+","; }
+  for(int i = 0; i < grainsNb+1; i++) { s += String(compute_amplitude(i, true))+","; }
   Serial.println(s);
 }
 
