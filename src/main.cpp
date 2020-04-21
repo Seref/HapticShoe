@@ -77,6 +77,7 @@ byte grainsNb;   // number of grains
 float granularityExponent = 1.0f; // exponent n of the function f(x) = x^n
 byte granularityChaosScalar = 0; // no chaos by default - we use this scalar as a factor for the random values above
 byte granularityChaosSeed = rand()*rvNb; // starting index in the random values - the value is assigned everytime we reset the granularity parameters
+bool granularitySymmetry = false; // flag on if we are using the convex/concave symmetry of the function
 
 double granularityMaxCurveValue; // maximum value produced by the curved -> need this variable to remap
 byte minBoundValue, maxBoundValue; // closest lower and higher grains
@@ -86,13 +87,22 @@ byte lastGrainIndex = 0; // we record the last grain played to avoid rebounce - 
 // to keep in mind: do we need to reset these values at some point? (e.g., configuration changed)
 
 // compute the *force level* for the given grain index
-double compute_grain_level(byte grainIndex, boolean remap)
+double compute_grain_level(byte grainIndex)
 {
   if(grainIndex == 0) { return 0; }
   else if(grainIndex == grainsNb) { return 255; }
 
-  double value = pow(grainIndex, granularityExponent);
-  if(remap) { value *= 255.0 / granularityMaxCurveValue; }
+  double value;
+
+  if(granularitySymmetry) {
+    value = 1 - pow(grainsNb - grainIndex, granularityExponent) / granularityMaxCurveValue;
+  } else {
+    value = pow(grainIndex, granularityExponent) / granularityMaxCurveValue;
+  }
+
+  // value should lie between 0-1 at this point
+  value * 255.0;
+
   // return (byte) value; // remap to have a value in 0-255
   // Serial.println("Seed " + String(granularityChaosSeed) + ", Index " + String((granularityChaosSeed + grainIndex)%rvNb) + ", Factor " + String(randomValues[(granularityChaosSeed + grainIndex)%rvNb]) + ", Value "+ String(randomValues[(granularityChaosSeed + grainIndex)%rvNb]*granularityChaosScalar));
   return value + randomValues[(granularityChaosSeed + grainIndex)%rvNb]*granularityChaosScalar; // probably need a random seed to avoid having always the same values represented
@@ -100,7 +110,7 @@ double compute_grain_level(byte grainIndex, boolean remap)
 
 // reset all parameters related to granularity based on the number of grains and the exponent
 // this function considers that the force input is by default at 0
-void reset_granularity_parameters(byte gnb, float exp, byte chaos)
+void reset_granularity_parameters(byte gnb, float exp, byte chaos, bool sym)
 {
   grainsNb = gnb;
   granularityExponent = exp;
@@ -110,15 +120,17 @@ void reset_granularity_parameters(byte gnb, float exp, byte chaos)
 
   if(granularityChaosScalar > 255.0/(2*grainsNb)) { Serial.println("Chaos granularity is too high."); }
 
+  granularitySymmetry = sym;
+
   granularityMaxCurveValue = pow(grainsNb, granularityExponent);
   Serial.println("Max granularity: " + String(granularityMaxCurveValue));
   minBoundIndex = 0; minBoundValue = 0;
-  maxBoundIndex = 1; maxBoundValue = compute_grain_level(maxBoundIndex, true);
+  maxBoundIndex = 1; maxBoundValue = compute_grain_level(maxBoundIndex);
   lastGrainIndex = 0;
  
   // print all grain levels
   String s = "Granularity: ";
-  for(int i = 0; i < grainsNb+1; i++) { s += String(compute_grain_level(i, true))+","; }
+  for(int i = 0; i < grainsNb+1; i++) { s += String(compute_grain_level(i))+","; }
   Serial.println(s);
 }
 
@@ -132,24 +144,30 @@ float frequencyExponent = 0.f; // exponent n of the function f(x) = x^n
 byte frequencyChaosScalar = 0; // no chaos by default - we use this scalar as a factor for the random values above
 byte frequencyChaosSeed = rand()*rvNb; // starting index in the random values - the value is assigned everytime we reset the granularity parameters 
 bool frequencyDecrease = false; // if non static, frequencies increase (false) or decrease (true)
+bool frequencySymmetry = false; // flag on if we are using the convex/concave symmetry of the function
 
 // compute the *frequency*
-double compute_frequency(byte grainIndex, boolean remap)
+double compute_frequency(byte grainIndex)
 {
   if(frequencyExponent == 0.f) { // if the frequency is static, we simply return a constant (+- chaos if needed)
     return maxFreqValue + frequencyChaosScalar*randomValues[(frequencyChaosSeed + grainIndex) % 255];
   }
 
-  double value = pow(grainIndex, frequencyExponent);
+  double value;
   
-  if(remap) { 
-    value /= frequencyMaxCurveValue;
-    value = value * (maxFreqValue - minFreqValue) + minFreqValue; 
+  if(frequencySymmetry) {
+    value = pow(grainsNb - grainIndex, frequencyExponent)/frequencyMaxCurveValue;
+    if(!frequencyDecrease) { value = 1 - value; }
+  } else {
+    value = pow(grainIndex, frequencyExponent) / frequencyMaxCurveValue;
   }
-  
+
+  // value should lie between 0-1 at that point
+  value = value * (maxFreqValue - minFreqValue) + minFreqValue; 
   if(frequencyDecrease) {
     value = minFreqValue + maxFreqValue - value;
   }
+
   value += (int) frequencyChaosScalar*randomValues[(frequencyChaosSeed + grainIndex) % 255];
   return value; // probably need a random seed to avoid having always the same values represented
 }
@@ -163,7 +181,7 @@ byte compute_duration(double frequency) {
 
 // reset all parameters related to frequency based on the number of grains and the exponent. This function considers that the force input is by default at 0
 // by inverting max and min values (e.g., 440, 40), frequencies will decrease from 440 to 40
-void reset_frequency_parameters(int16_t minVal, int16_t maxVal, float exp, byte chaos)
+void reset_frequency_parameters(int16_t minVal, int16_t maxVal, float exp, byte chaos, bool sym)
 {
   minFreqValue = minVal;
   maxFreqValue = maxVal;
@@ -177,7 +195,7 @@ void reset_frequency_parameters(int16_t minVal, int16_t maxVal, float exp, byte 
   frequencyChaosScalar = chaos;
   srand(maxFreqValue); // set random seed to always have the same initial index based on this max frequency
   frequencyChaosSeed = rand()*255;
-
+  frequencySymmetry = sym;
 
   // get maximum value produced by the current curve
   frequencyMaxCurveValue = pow(grainsNb, frequencyExponent);
@@ -185,7 +203,7 @@ void reset_frequency_parameters(int16_t minVal, int16_t maxVal, float exp, byte 
   
   // print all grain frequencies
   String s = "Frequency: ";
-  for(int i = 0; i < grainsNb+1 ; i++) { s += String(compute_frequency(i, true))+","; }
+  for(int i = 0; i < grainsNb+1 ; i++) { s += String(compute_frequency(i))+","; }
   Serial.println(s);
 }
 
@@ -200,31 +218,37 @@ float amplitudeExponent = 0.f; // exponent n of the function f(x) = x^n
 byte amplitudeChaosScalar = 0; // no chaos by default - we use this scalar as a factor for the random values above
 byte amplitudeChaosSeed = rand()*rvNb; // starting index in the random values - the value is assigned everytime we reset the granularity parameters 
 bool amplitudeDecrease = false;
+bool amplitudeSymmetry = false;
 
 // compute the *Amplitude*
-double compute_amplitude(byte grainIndex, boolean remap)
+double compute_amplitude(byte grainIndex)
 {
   if(amplitudeExponent == 0) { // if the amplitude is static, we simply return a constant (+- chaos if needed)
     return (byte) maxAmpValue + amplitudeChaosScalar*randomValues[(amplitudeChaosSeed + grainIndex) % rvNb];
   }
 
-  double value = pow(grainIndex, amplitudeExponent);
+  double value;
   
-  if(remap) { 
-    value /= amplitudeMaxCurveValue;
-    value = value * (maxAmpValue - minAmpValue) + minAmpValue; 
+  if(amplitudeSymmetry) {
+    value = pow(grainsNb - grainIndex, amplitudeExponent)/amplitudeMaxCurveValue;
+    if(!amplitudeDecrease) { value = 1 - value; }
+  } else {
+    value = pow(grainIndex, amplitudeExponent) / amplitudeMaxCurveValue;
   }
   
+  // value should lie between 0-1 at that point
+  value = value * (maxAmpValue - minAmpValue) + minAmpValue; 
   if(amplitudeDecrease) {
     value = minAmpValue + maxAmpValue - value;
   }
+
   value += amplitudeChaosScalar*randomValues[(amplitudeChaosSeed + grainIndex) % rvNb];
   return value; // probably need a random seed to avoid having always the same values represented
 }
 
 // reset all parameters related to amplitude based on the number of grains and the exponent. This function considers that the force input is by default at 0
 // to have the amplitude decreasing instead of increasing, min and max value must be inverted (e.g., 25, 5)
-void reset_amplitude_parameters(int16_t minVal, int16_t maxVal, float exp, byte chaos)
+void reset_amplitude_parameters(int16_t minVal, int16_t maxVal, float exp, byte chaos, bool sym)
 {
   minAmpValue = minVal;
   maxAmpValue = maxVal;
@@ -238,12 +262,13 @@ void reset_amplitude_parameters(int16_t minVal, int16_t maxVal, float exp, byte 
   amplitudeChaosScalar = chaos;
   srand(maxAmpValue); // set random seed to always have the same initial index based on this max amplitude
   amplitudeChaosSeed = rand()*rvNb;
+  amplitudeSymmetry = sym;
 
   amplitudeMaxCurveValue = pow(grainsNb, amplitudeExponent);
   
   // print all grain frequencies
   String s = "Amplitude ";
-  for(int i = 0; i < grainsNb+1; i++) { s += String(compute_amplitude(i, true))+","; }
+  for(int i = 0; i < grainsNb+1; i++) { s += String(compute_amplitude(i))+","; }
   Serial.println(s);
 }
 
@@ -350,9 +375,9 @@ inline void process_commands(String s, bool force)
         duration = sdur.toInt();
       }
 
-      reset_granularity_parameters(_granularity, 1.f, 0); // important to set granularity first, the other dimensions depend on it
-      reset_frequency_parameters(0, _frequency, 0.f, 0); // static frequency
-      reset_amplitude_parameters(0, _amplitude, 0.f, 0); // static amplitude
+      reset_granularity_parameters(_granularity, 1.f, 0, false); // important to set granularity first, the other dimensions depend on it
+      reset_frequency_parameters(0, _frequency, 0.f, 0, false); // static frequency
+      reset_amplitude_parameters(0, _amplitude, 0.f, 0, false); // static amplitude
 
       Serial.println("Received: " + String(_granularity) + " " + String(_frequency) + " " + String(_amplitude) + " " + sdur);              
     }
@@ -422,15 +447,16 @@ inline void process_commands(String s, bool force)
       // parameters: #grains, exponent, chaos scalar
       byte gnb =  (byte) get_value_from_string(s, ',', 1).toInt();      
       float exp = (float) get_value_from_string(s, ',', 2).toFloat();
-      byte chaos = (byte) get_value_from_string(s, ',', 3).toInt();      
+      byte chaos = (byte) get_value_from_string(s, ',', 3).toInt();
+      bool symmetry = get_value_from_string(s, ',', 4).toInt() != 0;
     
       if(exp == 0.f) { exp = 1.f; } // can't have a constant granularity -> this would be an unstopped wave
-      reset_granularity_parameters(gnb, exp, chaos);
+      reset_granularity_parameters(gnb, exp, chaos, symmetry);
 
       // need to force reset of frequency and amplitude here as they need the correct #grains
       // is this mandatory?
-      reset_frequency_parameters(minFreqValue, maxFreqValue, frequencyExponent, frequencyChaosScalar);
-      reset_amplitude_parameters(minAmpValue, maxAmpValue, amplitudeExponent, amplitudeChaosScalar);
+      reset_frequency_parameters(minFreqValue, maxFreqValue, frequencyExponent, frequencyChaosScalar, frequencySymmetry);
+      reset_amplitude_parameters(minAmpValue, maxAmpValue, amplitudeExponent, amplitudeChaosScalar, amplitudeSymmetry);
 
       //DacAudio.Play(&VibeOutput);
       Serial.println("New Granularity: " + String(grainsNb) + " grains, x^" + String(granularityExponent) + ", chaos level: " + String(granularityChaosScalar));              
@@ -442,19 +468,20 @@ inline void process_commands(String s, bool force)
 
       strcpy(lastCommand, s.c_str());
 
-      // parameters: min value, max value, exponent, chaos scalar
+      // parameters: min value, max value, exponent, chaos scalar, symmetry
       byte parameter = (byte) get_value_from_string(s, ',', 1).toInt();
       int16_t minValue = (int16_t) get_value_from_string(s, ',', 2).toInt();
       int16_t maxValue = (int16_t) get_value_from_string(s, ',', 3).toInt();
       float exp = (float) get_value_from_string(s, ',', 4).toFloat();
       byte chaos = (byte) get_value_from_string(s, ',', 5).toInt();
+      bool symmetry = get_value_from_string(s, ',', 6).toInt() != 0;
 
       if(parameter == 1) {
-        reset_frequency_parameters(minValue, maxValue, exp, chaos);
-        Serial.println("New Frequency: " + String(minValue) + " - " + String(maxValue) + ", x^" + String(exp) + ", chaos level: " + String(chaos));
+        reset_frequency_parameters(minValue, maxValue, exp, chaos, symmetry);
+        Serial.println("New Frequency: " + String(minValue) + " - " + String(maxValue) + ", x^" + String(exp) + ", chaos level: " + String(chaos) + ", symmetry: " + String(symmetry));
       } else if(parameter == 2) {
-        reset_amplitude_parameters(minValue, maxValue, exp, chaos);
-        Serial.println("New Amplitude: " + String(minValue) + " - " + String(maxValue) + ", x^" + String(exp) + ", chaos level: " + String(chaos));
+        reset_amplitude_parameters(minValue, maxValue, exp, chaos, symmetry);
+        Serial.println("New Amplitude: " + String(minValue) + " - " + String(maxValue) + ", x^" + String(exp) + ", chaos level: " + String(chaos) + ", symmetry: " + String(symmetry));
       }
     }
     break;
@@ -532,7 +559,7 @@ inline void play_at_step(byte mappedPressure){
         maxBoundValue = minBoundValue;
 
         // compute new values for the interval
-        minBoundValue = compute_grain_level(--minBoundIndex, true);
+        minBoundValue = compute_grain_level(--minBoundIndex);
       }
     }
     else if (maxBoundValue <= mappedPressure) {
@@ -546,7 +573,7 @@ inline void play_at_step(byte mappedPressure){
         minBoundValue = maxBoundValue;
 
         // compute new values for the interval
-        maxBoundValue = compute_grain_level(++maxBoundIndex, true);
+        maxBoundValue = compute_grain_level(++maxBoundIndex);
       }
     }
 
@@ -560,10 +587,10 @@ inline void play_at_step(byte mappedPressure){
      // VibeOutput.SetDuration(_duration);
      // VibeOutput.Volume = _amplitude+amplitudeChaosLevel*chaosSeed;
 
-      VibeOutput.SetFrequency(compute_frequency(lastGrainIndex, true));
+      VibeOutput.SetFrequency(compute_frequency(lastGrainIndex));
       if(!forceDuration) { VibeOutput.SetDuration(compute_duration(lastGrainIndex)); }
       else { VibeOutput.SetDuration(duration); }
-      VibeOutput.Volume = (compute_amplitude(lastGrainIndex, true)/100.0)*127.0;
+      VibeOutput.Volume = (compute_amplitude(lastGrainIndex)/100.0)*127.0;
 
       DacAudio.StopAllSounds();
       DacAudio.Play(&VibeOutput);
