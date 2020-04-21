@@ -34,8 +34,8 @@ int16_t abuf[ADC_SAMPLES_COUNT];
 int16_t abufPos = 0;
 
 //uint16_t maxPressureValue = 4095;
-uint16_t maxPressureValue = 2300;
-uint16_t initialPressureValue = 150; //todo: check this.
+uint16_t maxPressureValue = 2000;
+uint16_t initialPressureValue = 100; //todo: check this.
 //uint16_t initialPressureValue = 200; //todo: check this.
 
 // byte amplitude = 255;   // amplitude 0-255  == 0%-100%
@@ -262,6 +262,8 @@ uint16_t update_spacing = 20; //in ms rate at which serial should send stuff
 
 XT_Instrument_Class VibeOutput(INSTRUMENT_NONE, 127);
 
+
+
 String get_value_from_string(String data, char separator, int index)
 {
   int found = 0;
@@ -402,7 +404,7 @@ inline void process_commands(String s, bool force)
       int16_t _frequency = (int16_t) get_value_from_string(s, ',', 1).toInt();
       byte _amplitude =    (byte) get_value_from_string(s, ',', 2).toInt();      
       int16_t _duration =  (int16_t) get_value_from_string(s, ',', 3).toInt();
-      
+      VibeOutput.SetWaveForm(WAVE_SQUARE);
       VibeOutput.SetFrequency(_frequency);
       VibeOutput.SetDuration(_duration);
       VibeOutput.Volume = (byte) ((_amplitude/100.0)*127.0); // amplitude should be between 0-30%
@@ -479,8 +481,8 @@ inline byte get_mapped_pressure_value(){
   pressureSensor.add(pressureValue);
 
   int averagePressureValue = pressureSensor.getMedian(); // <----------ToDo:  replace with lowpass filter
-  double filteredPressureValue = apply_lowpass_filter(averagePressureValue, 0.0025f); //using double for more precision
-   linearizedPressureValue = pow((filteredPressureValue/250),3.8); //linearize
+  double filteredPressureValue = apply_lowpass_filter(averagePressureValue, 0.03f); //using double for more precision
+   linearizedPressureValue = pow((filteredPressureValue/300),3.6); //linearize
   //now remove any values that exceed our upper bound
   if (linearizedPressureValue > maxPressureValue)
   {
@@ -618,7 +620,9 @@ unsigned long lastTimestamp = 0;
 byte last_mapped_pressure_value = 0;
 void loop()
 {
-  DacAudio.FillBuffer();    
+  DacAudio.FillBuffer(); 
+  int bufferusageTEMP =  DacAudio.BufferUsage();
+  //Serial.println(bufferusageTEMP);
 
   //See if Serial Input is available and process the command
   if (Serial.available())
@@ -627,7 +631,7 @@ void loop()
 
   //get our pressure universal pressure readings 0-255 wheres as 255 equals the max body weight  
   byte mapped_pressure_value = get_mapped_pressure_value();
-
+    DacAudio.FillBuffer(); 
   //display the current pressure value
   ledcWrite(BLUELED, ledValue[mapped_pressure_value]);
 
