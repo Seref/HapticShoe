@@ -1,7 +1,5 @@
 #pragma once
 
-#define HOSTNAME "LEFTSHOE"
-
 #define REDLEDPIN 4
 #define GREENLEDPIN 2
 #define BLUELEDPIN 15

@@ -7,8 +7,7 @@
 
 #include <EEPROM.h>
 #include "eeprom_helper.h"
-#include <soc/sens_reg.h>
-#include <soc/sens_struct.h>
+
 
 XT_DAC_Audio_Class DacAudio(25,0);
 
@@ -27,11 +26,6 @@ float apply_lowpass_filter(int _inputValue, float k){
   return filteredOutput;
 }
 
-
-#define ADC_SAMPLES_COUNT 1000 //todo: check if this is good
-
-int16_t abuf[ADC_SAMPLES_COUNT];
-int16_t abufPos = 0;
 
 //uint16_t maxPressureValue = 4095;
 uint16_t maxPressureValue = 2000;
@@ -275,9 +269,6 @@ void reset_amplitude_parameters(int16_t minVal, int16_t maxVal, float exp, byte 
 
 /* #endregion */
 
-
-char lastCommand[128];
-
 bool useGrains = true; // avoid conflicts when playing waves (command ID: 5)
 
 bool debug_mode = false;
@@ -360,9 +351,7 @@ inline void process_commands(String s, bool force)
     {
     case 0: // set parameters; duration is now automatically computed
     {
-      useGrains = true;
-
-      strcpy(lastCommand, s.c_str());  
+      useGrains = true;      
       byte _granularity =  (byte) get_value_from_string(s, ',', 1).toInt();      
       int16_t _frequency = (int16_t) get_value_from_string(s, ',', 2).toInt();
       byte _amplitude =    (byte) get_value_from_string(s, ',', 3).toInt();
@@ -423,9 +412,7 @@ inline void process_commands(String s, bool force)
     break;
     case 5: //Play Wave
     {
-      useGrains = false;
-
-      strcpy(lastCommand, s.c_str());        
+      useGrains = false;         
       int16_t _frequency = (int16_t) get_value_from_string(s, ',', 1).toInt();
       byte _amplitude =    (byte) get_value_from_string(s, ',', 2).toInt();      
       int16_t _duration =  (int16_t) get_value_from_string(s, ',', 3).toInt();
@@ -441,8 +428,6 @@ inline void process_commands(String s, bool force)
     case 6: // granularity curve + chaos
     {
       useGrains = true;
-      
-      strcpy(lastCommand, s.c_str());  
 
       // parameters: #grains, exponent, chaos scalar
       byte gnb =  (byte) get_value_from_string(s, ',', 1).toInt();      
@@ -465,8 +450,6 @@ inline void process_commands(String s, bool force)
     case 7: // frequency - 1 or amplitude - 2 curve + chaos
     {
       useGrains = true;
-
-      strcpy(lastCommand, s.c_str());
 
       // parameters: min value, max value, exponent, chaos scalar, symmetry
       byte parameter = (byte) get_value_from_string(s, ',', 1).toInt();
