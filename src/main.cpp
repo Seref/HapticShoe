@@ -509,7 +509,7 @@ inline byte get_mapped_pressure_value(){
 
   int averagePressureValue = pressureSensor.getMedian(); // <----------ToDo:  replace with lowpass filter
   double filteredPressureValue = apply_lowpass_filter(averagePressureValue, 0.03f); //using double for more precision
-   linearizedPressureValue = pow((filteredPressureValue/300),3.6); //linearize
+   linearizedPressureValue = pow((filteredPressureValue/280),3.6); //linearize
   //now remove any values that exceed our upper bound
   if (linearizedPressureValue > maxPressureValue)
   {
