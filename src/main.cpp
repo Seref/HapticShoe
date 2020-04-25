@@ -101,7 +101,7 @@ double compute_grain_level(byte grainIndex)
   }
 
   // value should lie between 0-1 at this point
-  value * 255.0;
+  value = value * 255.0;
 
   // return (byte) value; // remap to have a value in 0-255
   // Serial.println("Seed " + String(granularityChaosSeed) + ", Index " + String((granularityChaosSeed + grainIndex)%rvNb) + ", Factor " + String(randomValues[(granularityChaosSeed + grainIndex)%rvNb]) + ", Value "+ String(randomValues[(granularityChaosSeed + grainIndex)%rvNb]*granularityChaosScalar));
@@ -507,9 +507,9 @@ inline byte get_mapped_pressure_value(){
   //add this value to our RunningMedian of 96 values
   pressureSensor.add(pressureValue);
 
-  int averagePressureValue = pressureSensor.getMedian(); // <----------ToDo:  replace with lowpass filter
+  int averagePressureValue = pressureSensor.getMedian(); 
   double filteredPressureValue = apply_lowpass_filter(averagePressureValue, 0.03f); //using double for more precision
-   linearizedPressureValue = pow((filteredPressureValue/280),3.6); //linearize
+   linearizedPressureValue = pow((filteredPressureValue/280),3.6); //linearize <-------------------------ToDo replace with function
   //now remove any values that exceed our upper bound
   if (linearizedPressureValue > maxPressureValue)
   {
@@ -648,7 +648,7 @@ byte last_mapped_pressure_value = 0;
 void loop()
 {
   DacAudio.FillBuffer(); 
-  int bufferusageTEMP =  DacAudio.BufferUsage();
+ // int bufferusageTEMP =  DacAudio.BufferUsage();
   //Serial.println(bufferusageTEMP);
 
   //See if Serial Input is available and process the command
@@ -658,7 +658,7 @@ void loop()
 
   //get our pressure universal pressure readings 0-255 wheres as 255 equals the max body weight  
   byte mapped_pressure_value = get_mapped_pressure_value();
-    DacAudio.FillBuffer(); 
+   // DacAudio.FillBuffer(); 
   //display the current pressure value
   ledcWrite(BLUELED, ledValue[mapped_pressure_value]);
 
