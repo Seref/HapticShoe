@@ -1,3 +1,7 @@
+#Remove the build directory of PIO and VSCode stuff
+.pio/
+.vscode/
+
 # Prerequisites
 *.d
 
