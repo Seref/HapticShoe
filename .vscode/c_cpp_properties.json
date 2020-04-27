@@ -6,8 +6,8 @@
         {
             "name": "Win32",
             "includePath": [
-                "c:/Users/Bruno Fruchard/Documents/Saarland/Projects/Haptic shoes/HapticShoe/src",
-                "c:/Users/Bruno Fruchard/Documents/Saarland/Projects/Haptic shoes/HapticShoe/lib/XT_DAC_Audio",
+                "c:/Users/Bruno Fruchard/Documents/Saarland/Projects/Haptic shoes/HapticShoe/branch functions/src",
+                "c:/Users/Bruno Fruchard/Documents/Saarland/Projects/Haptic shoes/HapticShoe/branch functions/lib/XT_DAC_Audio",
                 "C:/Users/Bruno Fruchard/.platformio/lib/RunningMedian_ID1361",
                 "C:/Users/Bruno Fruchard/.platformio/packages/framework-arduinoespressif32/libraries/EEPROM/src",
                 "C:/Users/Bruno Fruchard/.platformio/packages/framework-arduinoespressif32/tools/sdk/include/config",
@@ -99,8 +99,8 @@
             "browse": {
                 "limitSymbolsToIncludedHeaders": true,
                 "path": [
-                    "c:/Users/Bruno Fruchard/Documents/Saarland/Projects/Haptic shoes/HapticShoe/src",
-                    "c:/Users/Bruno Fruchard/Documents/Saarland/Projects/Haptic shoes/HapticShoe/lib/XT_DAC_Audio",
+                    "c:/Users/Bruno Fruchard/Documents/Saarland/Projects/Haptic shoes/HapticShoe/branch functions/src",
+                    "c:/Users/Bruno Fruchard/Documents/Saarland/Projects/Haptic shoes/HapticShoe/branch functions/lib/XT_DAC_Audio",
                     "C:/Users/Bruno Fruchard/.platformio/lib/RunningMedian_ID1361",
                     "C:/Users/Bruno Fruchard/.platformio/packages/framework-arduinoespressif32/libraries/EEPROM/src",
                     "C:/Users/Bruno Fruchard/.platformio/packages/framework-arduinoespressif32/tools/sdk/include/config",

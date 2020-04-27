@@ -93,15 +93,15 @@ void reset_grain_number(byte gnb) {
 }
 
 /* #region Parameters */ 
-int *granularity, *frequency, *amplitude;
+// initialize to cover extremely weird bug 
+int granularity[255], frequency[255], amplitude[255];
 
 // reset all parameters related to granularity based on the number of grains and the exponent
 // this function considers that the force input is by default at 0
-void update_parameter_values(std::string data, int *param, String name)
+void update_parameter_values(std::string data, int param[], String name)
 {
-
-  if(param) { delete[] param; }
-  param = new int[grainsNb];
+  // delete[] param;
+  // param = new int[grainsNb]; //TODO last value not taken into account
 
   byte i = 0;
   std::smatch sm; // results of the regular expression search
@@ -109,7 +109,7 @@ void update_parameter_values(std::string data, int *param, String name)
   while (i < grainsNb && regex_search(data, sm, regex_number)) {
     String match = String(sm[0].str().c_str());
     all += match + " ";
-		granularity[i] = (byte) match.toInt(); // super dupper ugly
+		param[i++] = (byte) match.toInt(); // super dupper ugly
 		data = sm.suffix().str();
 	}
   Serial.println(all);
@@ -312,12 +312,14 @@ inline void process_commands(String s, bool force)
       // parameters: min value, max value, exponent, chaos scalar, symmetry
       byte parameter = (byte) get_value_from_string(s, ',', 1).toInt();
      
+      Serial.println(String(parameter));
+
       std::string data = s.c_str();
       data = data.substr(data.find(',', 2)+1);
       if(parameter == 1) {
-        update_parameter_values(data.substr(data.find(',', 2)+1), frequency, "Frequency");
+        update_parameter_values(data, frequency, "Frequency");
       } else if(parameter == 2) {
-        update_parameter_values(data.substr(data.find(',', 2)+1), amplitude, "Amplitude");
+        update_parameter_values(data, amplitude, "Amplitude");
       }
     }
     break;
@@ -385,10 +387,10 @@ inline void play_at_step(byte mappedPressure){
     boolean playGrain = false;  
 
     // if one of the parameters is not set, we don't play any grain
-    if(!granularity || !frequency || !amplitude) {
-      Serial.println("Device not configured correctly!");
-      return;
-    }
+    // if(!granularity || !frequency || !amplitude) {
+    //   Serial.println("Device not configured correctly!");
+    //   return;
+    // }
 
     if(mappedPressure < granularity[minBoundIndex]) {
       if(lastGrainIndex != minBoundIndex) {
