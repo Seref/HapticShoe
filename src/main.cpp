@@ -370,7 +370,7 @@ void loop()
   }
 
   byte mapped_pressure_value = map(averagePressureValue, 0, maxPressureValue - initialPressureValue, 0, 127);
-
+  
   ledcWrite(BLUELED, ledValue[mapped_pressure_value]);
 
   if (currentState != PAUSE && currentState != EXPLODE)
@@ -384,6 +384,10 @@ void loop()
   if (mapped_pressure_value > 127)
   {
     mapped_pressure_value = 127;
+  }  
+
+  if(mapped_pressure_value> calculatedMaxPressureValue){
+    mapped_pressure_value = calculatedMaxPressureValue;
   }
   /*
 bool reached_peak = false;
@@ -410,31 +414,12 @@ byte direction_tolerance_counter = 0;
       else
       {
         reached_peak = false;
-      }
-      /*
-      if (currentLayer <= 0 || currentLayer >= materiallayer || !(currentFile->givesIn))
-      {
-        currentLayer = -1;
-        DacAudio.StopAllSounds();
-        firstDown = false;
-      }
-      else
-      {
-        if (!ContactSound->Playing)
-        {
-          ContactSound->Volume = volume;
-          ContactSound->SetCurrentPart(materiallayer - (--currentLayer));
-          DacAudio.Play(ContactSound);
-        }
-        ContactSound->Speed = map(currentLayer, materiallayer, -1, 2700, 1800) / 1000.0f;
-        ContactSound->Volume =(byte) map(volume, 0, 127, 0, map(currentLayer, materiallayer, -1, 120, 50));
-      }
-      */
+      }      
     }
     break;
     case DOWN:
-    {
-      byte adjustedPressure = map(mapped_pressure_value, 0, 127, 0, destAmount);
+    {      
+      byte adjustedPressure = map(mapped_pressure_value, 0, calculatedMaxPressureValue, 0, destAmount);
       outvalue = adjustedPressure;
 
       if (!is_static)
