@@ -106,7 +106,7 @@ void update_parameter_values(std::string data, int param[], String name)
   byte i = 0;
   std::smatch sm; // results of the regular expression search
   String all = name+"\n";
-  while (i < grainsNb && regex_search(data, sm, regex_number)) {
+  while (i < grainsNb+1 && regex_search(data, sm, regex_number)) {
     String match = String(sm[0].str().c_str());
     all += match + " ";
 		param[i++] = (byte) match.toInt(); // super dupper ugly
@@ -406,7 +406,7 @@ inline void play_at_step(byte mappedPressure){
         lastGrainIndex = maxBoundIndex;
       }
 
-      if(maxBoundIndex < grainsNb) { minBoundIndex = maxBoundIndex++; }
+      if(maxBoundIndex < grainsNb+1) { minBoundIndex = maxBoundIndex++; }
     }
 
     // Serial.println("MinBound " + String(minBoundValue) + ", MinIndex " + String(minBoundIndex) + ", MaxBound " + String(maxBoundValue) + ", MaxIndex " + String(maxBoundIndex));
